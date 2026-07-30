@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Bucketlist — your travel vision board</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Patrick+Hand&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+
+:root{
+  --bg-1:       #FBF4F2;
+  --bg-2:       #F1E6EC;
+  --card:       #FFFFFF;
+  --card-tint:  #F6EFEC;
+  --ink:        #2C3A45;
+  --ink-soft:   #5C6B75;
+  --ink-muted:  #8B98A0;
+  --thread:     #D45C6B;
+  --pin-hi:     #EFAFC2;
+  --tape:       rgba(111,169,196,0.28);
+  --blue:       #6FA9C4;
+  --pink:       #EFAFC2;
+  --font-display: 'Playfair Display', serif;
+  --font-hand:    'Patrick Hand', cursive;
+  --font-sans:    'Inter', -apple-system, sans-serif;
+}
+*{ box-sizing:border-box; margin:0; padding:0; }
+body{
+  font-family:var(--font-sans); color:var(--ink);
+  background:radial-gradient(ellipse at 20% 5%, rgba(255,255,255,0.6), transparent 55%), linear-gradient(180deg, var(--bg-1), var(--bg-2));
+  min-height:100vh; display:flex; flex-direction:column; align-items:center;
+  padding:40px 16px 60px; overflow-x:hidden;
+}
+button{ font-family:inherit; }
+
+.eyebrow{ display:block; text-align:center; font-family:var(--font-hand); font-size:22px; color:var(--thread); margin-bottom:2px; }
+.hero-title{ text-align:center; font-family:var(--font-display); font-weight:700; font-size:clamp(30px,4.6vw,46px); margin-bottom:4px; }
+.hero-count{ text-align:center; font-family:var(--font-sans); font-size:13px; color:var(--ink-muted); margin-bottom:26px; }
+
+.board-outer{ position:relative; transition:width 0.4s ease, height 0.4s ease; }
+.board{ position:relative; transform-origin:top center; transition:transform 0.3s ease; }
+
+.thread-layer{ position:absolute; inset:0; z-index:3; pointer-events:none; }
+.thread-layer path{ fill:none; stroke:var(--thread); stroke-width:2; opacity:0.7; }
+
+.pin{
+  position:absolute; width:14px; height:14px; border-radius:50%; z-index:9;
+  background:radial-gradient(circle at 35% 30%, var(--pin-hi), var(--thread) 65%);
+  box-shadow:0 2px 5px rgba(44,58,69,0.3), inset 0 1px 1px rgba(255,255,255,0.5);
+  transform:translate(-50%,-50%);
+}
+.anchor-pin{ width:16px; height:16px; z-index:8; }
+
+.polaroid{
+  position:absolute; width:230px; height:378px;
+  opacity:0; transform:scale(0.85); animation:popIn 0.4s cubic-bezier(.3,.7,.3,1.2) forwards;
+  perspective:1200px; cursor:pointer;
+}
+.polaroid-face{
+  background:var(--card); padding:12px 12px 26px; box-shadow:0 12px 22px rgba(44,58,69,0.14);
+  backface-visibility:hidden; position:absolute; inset:0; transition:transform 0.4s cubic-bezier(.3,.7,.3,1);
+}
+.polaroid-face.back{ transform:rotateY(180deg); display:flex; flex-direction:column; gap:8px; padding:14px; overflow-y:auto; }
+.polaroid.flipped .polaroid-face.front{ transform:rotateY(180deg); }
+.polaroid.flipped .polaroid-face.back{ transform:rotateY(0deg); }
+.back-label{ font-family:var(--font-hand); font-size:15px; color:var(--thread); margin-top:2px; }
+.back-link-row{ display:flex; gap:4px; }
+.back-link-row input{ flex:1; font-size:16px; padding:5px 6px; border:1px solid #E9D8DC; border-radius:6px; }
+.back-link-row button{ font-size:10px; padding:0 8px; border:none; border-radius:6px; background:var(--blue); color:#fff; cursor:pointer; }
+.saved-link{ font-size:10px; color:var(--ink-soft); background:var(--card-tint); border-radius:6px; padding:5px 7px; word-break:break-all; }
+.place-item{ display:flex; align-items:center; gap:6px; font-size:11px; }
+.place-item span{ flex:1; }
+.close-back{ align-self:flex-end; font-size:11px; color:var(--ink-muted); cursor:pointer; background:none; border:none; }
+.push-section{ margin-top:auto; padding-top:8px; border-top:1px solid #EFE6E9; }
+.push-btn{ width:100%; font-size:11px; padding:8px 0; border:none; border-radius:8px; background:var(--blue); color:#fff; cursor:pointer; }
+.push-btn.done{ background:#8FC2A9; cursor:default; }
+.push-dropdown{ margin-top:6px; background:var(--card-tint); border-radius:8px; padding:6px; display:flex; flex-direction:column; gap:2px; }
+.push-option{ font-size:11px; padding:6px 8px; border-radius:6px; cursor:pointer; text-align:left; background:none; border:none; color:var(--ink); }
+.push-option:hover{ background:#fff; }
+.push-option.new-trip{ color:var(--blue); font-weight:500; border-top:1px solid #E9D8DC; margin-top:2px; padding-top:8px; }
+@keyframes popIn{ to{ opacity:1; transform:scale(1); } }
+.photo-placeholder{
+  width:100%; aspect-ratio:4/5; border-radius:2px;
+  background:linear-gradient(160deg, #8FC4DE, #EFAFC2);
+  display:flex; align-items:center; justify-content:center;
+}
+.photo-placeholder svg{ width:34px; height:34px; opacity:0.6; color:#fff; }
+.photo-placeholder{ cursor:pointer; position:relative; }
+.photo-placeholder:hover::after{
+  content:"tap to add a photo"; position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+  background:rgba(44,58,69,0.35); color:#fff; font-size:11px; font-family:var(--font-sans); text-align:center; padding:0 10px;
+}
+.dest-name{ font-family:var(--font-hand); font-size:23px; text-align:center; margin-top:10px; outline:none; border-bottom:1px dashed transparent; cursor:text; color:var(--ink); }
+.dest-name:hover, .dest-name:focus{ border-bottom-color:var(--ink-soft); }
+.tape{ position:absolute; top:-10px; left:50%; transform:translateX(-50%); width:50px; height:20px; background:var(--tape); z-index:2; }
+
+.add-card{
+  position:absolute; width:200px; padding:36px 12px; text-align:center;
+  border:1.5px dashed var(--blue); background:rgba(255,255,255,0.5); opacity:0.85;
+  cursor:pointer; z-index:6; transition:opacity 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+}
+.add-card:hover{ opacity:1; box-shadow:0 12px 22px rgba(44,58,69,0.12); transform:scale(1.03); }
+.add-plus{ font-family:var(--font-hand); font-size:28px; color:var(--blue); }
+.add-caption{ font-family:var(--font-hand); font-size:15px; color:var(--ink-soft); margin-top:2px; }
+
+.empty-note{ font-family:var(--font-hand); font-size:17px; color:var(--ink-soft); text-align:center; max-width:220px; margin-top:14px; }
+
+.modal-overlay{ position:fixed; inset:0; background:rgba(44,58,69,0.4); z-index:100; display:none; align-items:center; justify-content:center; padding:20px; }
+.modal-overlay.open{ display:flex; }
+.modal{ background:var(--bg-1); width:100%; max-width:320px; padding:26px 24px; box-shadow:0 20px 40px rgba(44,58,69,0.25); border-radius:12px; position:relative; }
+.modal-prompt{ font-family:var(--font-hand); font-size:20px; margin-bottom:14px; }
+.modal label{ display:block; font-size:11px; color:var(--ink-soft); margin:10px 0 4px; }
+.modal input{ width:100%; padding:9px 10px; border:1px solid #E9D8DC; background:#fff; font-size:16px; border-radius:8px; }
+.modal-actions{ display:flex; gap:8px; margin-top:18px; }
+.modal-actions button{ flex:1; padding:10px 0; border-radius:8px; cursor:pointer; font-size:13px; }
+.btn-save{ background:var(--blue); color:#fff; border:none; }
+.btn-cancel{ background:transparent; color:var(--ink-soft); border:1px solid #E9D8DC; }
+.modal-close{ position:absolute; top:10px; right:12px; background:none; border:none; font-size:18px; color:var(--ink-soft); cursor:pointer; }
+
+
+</style>
+</head>
+<body>
+
+
+
+<span class="eyebrow">a little corner just for dreaming</span>
+<h1 class="hero-title">Bucketlist</h1>
+<div class="hero-count" id="heroCount"></div>
+
+<div class="board-outer" id="boardOuter">
+  <div class="board" id="board">
+    <svg class="thread-layer" id="threadLayer"></svg>
+    <div class="add-card" id="addCard">
+      <div class="add-plus">+ ADD</div>
+      <div class="add-caption">add another dream</div>
+    </div>
+  </div>
+</div>
+<div class="empty-note" id="emptyNote">Every great journey starts with a single dream.</div>
+
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal">
+    <button class="modal-close" id="modalClose">&times;</button>
+    <div class="modal-prompt">📍 Where do you dream of going?</div>
+    <label for="destName">Destination name</label>
+    <input type="text" id="destName" placeholder="Reykjavik">
+    <label for="destCountry" style="font-size:11px;color:var(--ink-soft);display:block;margin:8px 0 4px;">Country</label>
+    <select id="destCountry" style="width:100%;padding:9px 10px;border:1px solid #E9E1DA;border-radius:8px;font-size:16px;font-family:inherit;margin-bottom:8px;"></select>
+    <div class="modal-actions">
+      <button class="btn-cancel" id="modalCancel">Cancel</button>
+      <button class="btn-save" id="modalSave">Save</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ============================================================
+   PLACEMENT — starts from the golden-angle spiral as a guess,
+   then pushes each new card outward along that same angle,
+   checking against every already-placed card as a real
+   rectangle (with a gap margin), until it's genuinely clear.
+   This is what the previous version was missing: it assumed
+   even spacing would avoid overlap, but never actually checked.
+   ============================================================ */
+const GOLDEN_ANGLE = 137.5 * Math.PI/180;
+const CARD_W = 230, CARD_H = 378;
+const BASE_R = 170;
+const RADIUS_STEP = 22;
+const GAP = 18; // minimum clear space between any two cards
+
+function rectsOverlap(l1,t1,l2,t2){
+  return (l1 < l2+CARD_W+GAP) && (l1+CARD_W+GAP > l2) &&
+         (t1 < t2+CARD_H+GAP) && (t1+CARD_H+GAP > t2);
+}
+
+function computeLayout(destinations){
+  // reserve the +Add card's own footprint so nothing lands on it either
+  const addCardW = 200, addCardH = 150, addLeft = -addCardW/2, addTop = 30;
+  const placed = [{ left:addLeft, top:addTop, w:addCardW, h:addCardH }];
+  const positions = [];
+
+  destinations.forEach((d, idx) => {
+    const i = idx + 1;
+    const angle = i * GOLDEN_ANGLE;
+    let radius = BASE_R;
+    let left, top, attempts = 0;
+
+    while (attempts < 80) {
+      const dx = radius * Math.cos(angle);
+      const dy = radius * Math.sin(angle) * 0.8;
+      left = dx - CARD_W/2; top = dy - CARD_H/2;
+      const collides = placed.some(p => {
+        const w = p.w ?? CARD_W, h = p.h ?? CARD_H;
+        return (left < p.left+w+GAP) && (left+CARD_W+GAP > p.left) &&
+               (top < p.top+h+GAP) && (top+CARD_H+GAP > p.top);
+      });
+      if (!collides) break;
+      radius += RADIUS_STEP;
+      attempts++;
+    }
+    placed.push({ left, top, w:CARD_W, h:CARD_H });
+    positions.push({ d, left, top, idx });
+  });
+
+  return { positions, addLeft, addTop, addCardW, addCardH };
+}
+
+let destinations = [];
+
+// stand-in for the traveller's real, in-progress trips — in the real app
+// this list comes from their actual trip data, not a hardcoded array
+const trips = ["Bali squad trip", "Solo Japan · 2026", "Europe summer"];
+
+function render(){
+  const board = document.getElementById('board');
+  const svg = document.getElementById('threadLayer');
+  const addCard = document.getElementById('addCard');
+
+  board.querySelectorAll('.polaroid, .pin').forEach(el=>el.remove());
+  svg.innerHTML = '';
+
+  document.getElementById('heroCount').textContent =
+    destinations.length === 0 ? '' : destinations.length + (destinations.length===1?' place saved':' places saved');
+
+  // Tell the shell what's on this list, including each place's resolved
+  // country — this is the real signal Home uses to personalize "Popular
+  // in ___" around what this person has actually shown interest in.
+  if(window.parent !== window){
+    window.parent.postMessage({ bucketlistPlaces: destinations.map(d=>({ name:d.name, country:d.country||null, photo:d.photo||null })) }, '*');
+  }
+  document.getElementById('emptyNote').style.display = destinations.length===0 ? 'block' : 'none';
+
+  const { positions, addLeft, addTop, addCardW, addCardH } = computeLayout(destinations);
+
+  let minX = addLeft, maxX = addLeft+addCardW, minY = -20, maxY = addTop+addCardH;
+  positions.forEach(({left,top})=>{
+    minX = Math.min(minX, left); maxX = Math.max(maxX, left+CARD_W);
+    minY = Math.min(minY, top);  maxY = Math.max(maxY, top+CARD_H);
+  });
+
+  const padding = 40;
+  const boardW = (maxX-minX) + padding*2;
+  const boardH = (maxY-minY) + padding*2;
+  const originX = padding - minX;
+  const originY = padding - minY;
+
+  board.style.width = boardW+'px';
+  board.style.height = boardH+'px';
+  svg.setAttribute('width', boardW);
+  svg.setAttribute('height', boardH);
+  svg.setAttribute('viewBox', '0 0 '+boardW+' '+boardH);
+
+  addCard.style.left = (originX+addLeft)+'px';
+  addCard.style.top  = (originY+addTop)+'px';
+
+  const anchor = { x: originX, y: originY };
+
+  positions.forEach(({d,left,top,idx})=>{
+    const card = document.createElement('div');
+    card.className = 'polaroid';
+    card.dataset.destName = d.name;
+    card.style.left = (originX+left)+'px';
+    card.style.top  = (originY+top)+'px';
+    const rot = ((idx*53)%9)-4;
+    card.style.transform = 'rotate('+rot+'deg)';
+    card.style.animationDelay = (idx*0.05)+'s';
+
+    const photoInner = d.photo
+      ? '<img src="'+d.photo+'" alt="" style="width:100%;height:100%;object-fit:cover;display:block;">'
+      : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M12 21s-7-6.5-7-11a7 7 0 1 1 14 0c0 4.5-7 11-7 11z"/><circle cx="12" cy="10" r="2.4"/></svg>';
+
+    if(!d.videos) d.videos = [];
+    if(!d.places) d.places = [];
+
+    card.innerHTML =
+      '<div class="polaroid-face front">' +
+        '<div class="tape"></div>' +
+        '<div class="photo-placeholder" title="Tap to add a photo">'+photoInner+'</div>' +
+        '<input type="file" accept="image/*" class="photo-input" style="display:none;">' +
+        '<div class="dest-name" contenteditable="true" spellcheck="false">'+d.name+'</div>' +
+      '</div>' +
+      '<div class="polaroid-face back">' +
+        '<button class="close-back">close ✕</button>' +
+        '<div class="back-label">Saved videos</div>' +
+        '<div class="back-link-row"><input type="text" placeholder="Paste a video link" class="video-input"><button class="video-add">add</button></div>' +
+        '<div class="video-list"></div>' +
+        '<div class="back-label">Places to see</div>' +
+        '<div class="back-link-row"><input type="text" placeholder="e.g. Uluwatu Temple" class="place-input"><button class="place-add">add</button></div>' +
+        '<div class="place-list"></div>' +
+        '<div class="push-section">' +
+          '<button class="push-btn">Push to trip ▾</button>' +
+          '<div class="push-dropdown" style="display:none;"></div>' +
+        '</div>' +
+      '</div>';
+
+    const nameEl = card.querySelector('.dest-name');
+    nameEl.addEventListener('click', e=>e.stopPropagation());
+    nameEl.addEventListener('blur', ()=>{ d.name = nameEl.textContent.trim() || d.name; });
+
+    const photoEl = card.querySelector('.photo-placeholder');
+    const fileInput = card.querySelector('.photo-input');
+    photoEl.addEventListener('click', e=>{ e.stopPropagation(); fileInput.click(); });
+    fileInput.addEventListener('change', ()=>{
+      const file = fileInput.files[0];
+      if(!file) return;
+      const reader = new FileReader();
+      reader.onload = ()=>{ d.photo = reader.result; render(); };
+      reader.readAsDataURL(file);
+    });
+
+    // flip to notepad on tap (front face only, not the name or photo)
+    card.querySelector('.polaroid-face.front').addEventListener('click', ()=> card.classList.add('flipped'));
+    card.querySelector('.close-back').addEventListener('click', e=>{ e.stopPropagation(); card.classList.remove('flipped'); });
+
+    function renderVideos(){
+      const list = card.querySelector('.video-list');
+      list.innerHTML = d.videos.map(v=>'<div class="saved-link">'+v+'</div>').join('');
+    }
+    function renderPlaces(){
+      const list = card.querySelector('.place-list');
+      list.innerHTML = d.places.map((p,pi)=>
+        '<div class="place-item"><span>'+p+'</span></div>'
+      ).join('');
+    }
+    renderVideos(); renderPlaces();
+
+    card.querySelector('.video-add').addEventListener('click', e=>{
+      e.stopPropagation();
+      const input = card.querySelector('.video-input');
+      const val = input.value.trim();
+      if(!val) return;
+      d.videos.push(val); input.value=''; renderVideos();
+    });
+    card.querySelector('.place-add').addEventListener('click', e=>{
+      e.stopPropagation();
+      const input = card.querySelector('.place-input');
+      const val = input.value.trim();
+      if(!val) return;
+      d.places.push(val); input.value=''; renderPlaces();
+    });
+    card.querySelectorAll('.back-link-row input').forEach(inp=>inp.addEventListener('click', e=>e.stopPropagation()));
+
+    // ---- push to trip ----
+    const pushBtn = card.querySelector('.push-btn');
+    const pushDropdown = card.querySelector('.push-dropdown');
+
+    function renderPushState(){
+      if(d.pushedTo){
+        pushBtn.textContent = 'Pushed to ' + d.pushedTo + ' ✓';
+        pushBtn.classList.add('done');
+        pushDropdown.style.display = 'none';
+      }
+    }
+    renderPushState();
+
+    pushBtn.addEventListener('click', e=>{
+      e.stopPropagation();
+      if(d.pushedTo) return; // already pushed, nothing to reopen
+      const open = pushDropdown.style.display === 'flex';
+      pushDropdown.style.display = open ? 'none' : 'flex';
+      if(!open){
+        pushDropdown.innerHTML =
+          trips.map(t=>'<button class="push-option" data-trip="'+t+'">'+t+'</button>').join('') +
+          '<button class="push-option new-trip">+ create a new trip</button>';
+        pushDropdown.querySelectorAll('.push-option').forEach(opt=>{
+          opt.addEventListener('click', ev=>{
+            ev.stopPropagation();
+            const chosen = opt.dataset.trip || (d.name + ' (new trip)');
+            d.pushedTo = chosen;
+            renderPushState();
+          });
+        });
+      }
+    });
+
+    board.appendChild(card);
+
+    const cardAnchor = { x: originX+left+CARD_W/2, y: originY+top };
+    const midX = (anchor.x+cardAnchor.x)/2 + (idx%2===0?-30:30);
+    const midY = (anchor.y+cardAnchor.y)/2 + (idx%2===0?20:-20);
+    const path = document.createElementNS('http://www.w3.org/2000/svg','path');
+    path.setAttribute('d','M'+anchor.x+','+anchor.y+' Q'+midX+','+midY+' '+cardAnchor.x+','+cardAnchor.y);
+    svg.appendChild(path);
+
+    const pin = document.createElement('div');
+    pin.className='pin'; pin.style.left=cardAnchor.x+'px'; pin.style.top=cardAnchor.y+'px';
+    board.appendChild(pin);
+  });
+
+  if(destinations.length>0){
+    const anchorPin = document.createElement('div');
+    anchorPin.className='pin anchor-pin'; anchorPin.style.left=anchor.x+'px'; anchorPin.style.top=anchor.y+'px';
+    board.appendChild(anchorPin);
+  }
+
+  scaleToFit();
+}
+
+function scaleToFit(){
+  const outer = document.getElementById('boardOuter');
+  const board = document.getElementById('board');
+  const w = parseFloat(board.style.width) || board.offsetWidth;
+  const h = parseFloat(board.style.height) || board.offsetHeight;
+  const available = Math.min(window.innerWidth - 32, 1100);
+  const scale = Math.min(1, available/w);
+  board.style.transform = 'scale('+scale+')';
+  outer.style.width = (w*scale)+'px';
+  outer.style.height = (h*scale)+'px';
+}
+window.addEventListener('resize', scaleToFit);
+
+const modalOverlay = document.getElementById('modalOverlay');
+function openModal(){ modalOverlay.classList.add('open'); document.getElementById('destName').focus(); }
+function closeModal(){ modalOverlay.classList.remove('open'); document.getElementById('destName').value=''; }
+
+document.getElementById('addCard').addEventListener('click', openModal);
+document.getElementById('modalClose').addEventListener('click', closeModal);
+document.getElementById('modalCancel').addEventListener('click', closeModal);
+modalOverlay.addEventListener('click', e=>{ if(e.target===modalOverlay) closeModal(); });
+
+// A static list of the world's countries — this is what actually makes
+// "works for every country" reliable. It's finite and doesn't change, so
+// it needs no network call at all, unlike live geocoding: no CORS risk,
+// no silent failures, works offline, resolves instantly.
+const worldCountries = ["Afghanistan","Albania","Algeria","Andorra","Angola","Antigua and Barbuda","Argentina","Armenia","Australia","Austria","Azerbaijan","Bahamas","Bahrain","Bangladesh","Barbados","Belarus","Belgium","Belize","Benin","Bhutan","Bolivia","Bosnia and Herzegovina","Botswana","Brazil","Brunei","Bulgaria","Burkina Faso","Burundi","Cabo Verde","Cambodia","Cameroon","Canada","Central African Republic","Chad","Chile","China","Colombia","Comoros","Costa Rica","Croatia","Cuba","Cyprus","Czechia","Denmark","Djibouti","Dominica","Dominican Republic","Ecuador","Egypt","El Salvador","Equatorial Guinea","Eritrea","Estonia","Eswatini","Ethiopia","Fiji","Finland","France","Gabon","Gambia","Georgia","Germany","Ghana","Greece","Grenada","Guatemala","Guinea","Guinea-Bissau","Guyana","Haiti","Honduras","Hungary","Iceland","India","Indonesia","Iran","Iraq","Ireland","Israel","Italy","Jamaica","Japan","Jordan","Kazakhstan","Kenya","Kiribati","Kosovo","Kuwait","Kyrgyzstan","Laos","Latvia","Lebanon","Lesotho","Liberia","Libya","Liechtenstein","Lithuania","Luxembourg","Madagascar","Malawi","Malaysia","Maldives","Mali","Malta","Marshall Islands","Mauritania","Mauritius","Mexico","Micronesia","Moldova","Monaco","Mongolia","Montenegro","Morocco","Mozambique","Myanmar","Namibia","Nauru","Nepal","Netherlands","New Zealand","Nicaragua","Niger","Nigeria","North Korea","North Macedonia","Norway","Oman","Pakistan","Palau","Palestine","Panama","Papua New Guinea","Paraguay","Peru","Philippines","Poland","Portugal","Qatar","Romania","Russia","Rwanda","Saint Kitts and Nevis","Saint Lucia","Saint Vincent and the Grenadines","Samoa","San Marino","Sao Tome and Principe","Saudi Arabia","Senegal","Serbia","Seychelles","Sierra Leone","Singapore","Slovakia","Slovenia","Solomon Islands","Somalia","South Africa","South Korea","South Sudan","Spain","Sri Lanka","Sudan","Suriname","Sweden","Switzerland","Syria","Taiwan","Tajikistan","Tanzania","Thailand","Timor-Leste","Togo","Tonga","Trinidad and Tobago","Tunisia","Turkey","Turkmenistan","Tuvalu","Uganda","Ukraine","United Arab Emirates","United Kingdom","United States","Uruguay","Uzbekistan","Vanuatu","Vatican City","Venezuela","Vietnam","Yemen","Zambia","Zimbabwe"];
+
+const destCountrySelect = document.getElementById('destCountry');
+destCountrySelect.innerHTML = worldCountries.map(c => '<option value="'+c+'">'+c+'</option>').join('');
+destCountrySelect.value = 'Japan'; // a reasonable, changeable default rather than leaving it blank
+
+document.getElementById('modalSave').addEventListener('click', ()=>{
+  const name = document.getElementById('destName').value.trim();
+  const country = destCountrySelect.value;
+  if(!name) return;
+  destinations.push({ name, country }); // resolved instantly, no network call, cannot fail
+  closeModal();
+  render();
+});
+
+render();
+
+// Lets Home deep-link straight into editing a specific place — tapping a
+// "From your Bucketlist" card on Home lands here, on the exact same card,
+// already flipped open, instead of a separate editor with its own copy
+// of the data. One place the data actually lives, always.
+window.addEventListener('message', e=>{
+  if(!e.data || !e.data.focusPlace) return;
+  const target = e.data.focusPlace;
+  setTimeout(()=>{
+    const card = document.querySelector('.polaroid[data-dest-name="'+CSS.escape(target)+'"]');
+    if(card){
+      card.scrollIntoView({ behavior:'smooth', block:'center', inline:'center' });
+      card.classList.add('flipped');
+    }
+  }, 300);
+});
+
+</script>
+</body>
+</html>

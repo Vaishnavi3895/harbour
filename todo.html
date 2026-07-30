@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>To-Do</title>
+<style>
+:root{
+  --bg-1:#FBF4F2; --bg-2:#F1E6EC; --card:#FFFFFF; --card-tint:#F6EFEC;
+  --ink:#2C3A45; --ink-soft:#5C6B75; --ink-muted:#8B98A0;
+  --blue:#6FA9C4; --mint:#8FC2A9;
+  --amber-text:#8A6423; --danger:#D45C6B;
+  --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
+}
+*{ box-sizing:border-box; margin:0; padding:0; }
+body{ font-family:var(--font-sans); color:var(--ink); background:linear-gradient(180deg,var(--bg-1),var(--bg-2)); min-height:100vh; padding:20px 16px 40px; }
+button{ font-family:inherit; }
+.wrap{ max-width:420px; margin:0 auto; }
+.tab-header{ margin-bottom:14px; } .tab-header h1{ font-size:17px; font-weight:600; } .tab-header p{ font-size:11px; color:var(--ink-muted); }
+.panel{ background:var(--card-tint); border-radius:20px; padding:14px; margin-bottom:16px; }
+
+.view-toggle{ display:flex; gap:6px; margin-bottom:12px; background:var(--card); border-radius:12px; padding:4px; }
+.view-toggle button{ flex:1; padding:8px 0; border-radius:9px; border:none; background:none; font-size:11.5px; font-weight:500; color:var(--ink-soft); cursor:pointer; }
+.view-toggle button.active{ background:var(--ink); color:#fff; }
+
+.section-title{ font-size:12px; font-weight:600; margin:14px 4px 8px; color:var(--ink-soft); }
+.check-row{ display:flex; align-items:center; gap:10px; padding:9px 4px; border-bottom:0.5px solid #EDE1D6; }
+.check-row:last-child{ border-bottom:none; }
+.check-icon{ width:18px; height:18px; flex:0 0 18px; cursor:pointer; color:var(--ink-muted); }
+.check-icon.done{ color:var(--mint); }
+.check-label{ font-size:12px; flex:1; }
+.check-label.done{ color:var(--ink-muted); text-decoration:line-through; }
+.check-sub{ font-size:9.5px; color:var(--ink-muted); }
+
+.visa-row{ display:flex; align-items:center; justify-content:space-between; padding:8px 4px; border-bottom:0.5px solid #EDE1D6; }
+.visa-row:last-child{ border-bottom:none; }
+.visa-status{ font-size:10px; padding:3px 9px; border-radius:8px; cursor:pointer; }
+.status-approved{ background:#E5F2EB; color:#3B6D48; }
+.status-applied{ background:#FCEFD8; color:var(--amber-text); }
+.status-notstarted{ background:#FBE3E3; color:var(--danger); }
+
+.add-item-row{ display:flex; gap:6px; margin-top:10px; }
+.add-item-row input{ flex:1; padding:8px 10px; border:1px solid #E9E1DA; border-radius:8px; font-size:16px; font-family:inherit; }
+.add-item-row button{ padding:0 14px; border:none; border-radius:8px; background:var(--blue); color:#fff; font-size:11px; cursor:pointer; }
+
+.suggested-tag{ font-size:9.5px; color:var(--ink-muted); }
+
+</style>
+</head>
+<body>
+
+
+
+<div class="wrap">
+  <div class="tab-header"><h1>To-Do</h1><p>Bali, 4–8 Aug</p></div>
+
+  <div class="panel">
+    <div class="view-toggle">
+      <button class="active" data-view="group">Group</button>
+      <button data-view="mine">Mine</button>
+    </div>
+
+    <div id="groupView">
+      <p class="section-title">Checklist</p>
+      <div id="checklist"></div>
+      <div class="add-item-row"><input type="text" id="newCheckItem" placeholder="Add a to-do"><button id="addCheckBtn">Add</button></div>
+
+      <p class="section-title">Visa status</p>
+      <div id="visaList"></div>
+
+      <p class="section-title">Packing list</p>
+      <div id="packingList"></div>
+      <div class="add-item-row"><input type="text" id="newPackItem" placeholder="Add an item"><button id="addPackBtn">Add</button></div>
+    </div>
+
+    <div id="mineView" style="display:none;">
+      <p class="section-title">Buy</p>
+      <div id="mineBuy"></div>
+      <div class="add-item-row"><input type="text" id="newBuyItem" placeholder="Something to buy"><button id="addBuyBtn">Add</button></div>
+
+      <p class="section-title">Visit</p>
+      <div id="mineVisit"></div>
+      <div class="add-item-row"><input type="text" id="newVisitItem" placeholder="A place you want to see"><button id="addVisitBtn">Add</button></div>
+
+      <p class="section-title">Try</p>
+      <div id="mineTry"></div>
+      <div class="add-item-row"><input type="text" id="newTryItem" placeholder="Food or experience to try"><button id="addTryBtn">Add</button></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const tripType = new URLSearchParams(window.location.search).get('tripType') || window.__PRESET_TRIP_TYPE || 'group';
+const isSolo = tripType === 'solo';
+
+let checklist = [
+  { text:'Book Ubud stay', done:true },
+  { text:'Buy travel insurance', done:false },
+  { text:'Confirm airport transfer', done:false },
+];
+let visaStatus = isSolo ? { 'You':'approved' } : { 'You':'approved', 'Ria':'notstarted', 'Sam':'applied', 'Arjun':'notstarted' };
+let packing = [
+  { text:'Beachwear', done:false, suggested:'suggested for day 4' },
+  { text:'Modest wear', done:false, suggested:'temple visit' },
+];
+let mine = { buy:[], visit:[], try_:[] };
+
+function checkIcon(done){
+  return done
+    ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="9"/></svg>'
+    : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="9"/></svg>';
+}
+
+function renderChecklist(){
+  document.getElementById('checklist').innerHTML = checklist.map((c,i)=>
+    '<div class="check-row"><span class="check-icon '+(c.done?'done':'')+'" data-toggle-check="'+i+'">'+checkIcon(c.done)+'</span>'+
+    '<span class="check-label '+(c.done?'done':'')+'">'+c.text+'</span></div>'
+  ).join('');
+  document.querySelectorAll('[data-toggle-check]').forEach(el=>{
+    el.addEventListener('click', ()=>{ checklist[+el.dataset.toggleCheck].done = !checklist[+el.dataset.toggleCheck].done; renderChecklist(); });
+  });
+}
+
+function renderVisa(){
+  const labels = { approved:'Approved', applied:'Applied', notstarted:'Not started' };
+  const order = ['notstarted','applied','approved'];
+  document.getElementById('visaList').innerHTML = Object.entries(visaStatus).map(([name,status])=>
+    '<div class="visa-row"><p style="font-size:12px;">'+name+'</p><span class="visa-status status-'+status+'" data-visa="'+name+'">'+labels[status]+'</span></div>'
+  ).join('');
+  document.querySelectorAll('[data-visa]').forEach(el=>{
+    el.addEventListener('click', ()=>{
+      const name = el.dataset.visa;
+      const order2 = ['notstarted','applied','approved'];
+      const next = order2[(order2.indexOf(visaStatus[name])+1) % order2.length];
+      visaStatus[name] = next;
+      renderVisa();
+    });
+  });
+}
+
+function renderPacking(){
+  document.getElementById('packingList').innerHTML = packing.map((p,i)=>
+    '<div class="check-row"><span class="check-icon '+(p.done?'done':'')+'" data-toggle-pack="'+i+'">'+checkIcon(p.done)+'</span>'+
+    '<span class="check-label '+(p.done?'done':'')+'">'+p.text+(p.suggested?' <span class="suggested-tag">· '+p.suggested+'</span>':'')+'</span></div>'
+  ).join('');
+  document.querySelectorAll('[data-toggle-pack]').forEach(el=>{
+    el.addEventListener('click', ()=>{ packing[+el.dataset.togglePack].done = !packing[+el.dataset.togglePack].done; renderPacking(); });
+  });
+}
+
+function renderMineList(key, elId){
+  document.getElementById(elId).innerHTML = mine[key].map((item,i)=>
+    '<div class="check-row"><span class="check-icon '+(item.done?'done':'')+'" data-toggle-mine="'+key+':'+i+'">'+checkIcon(item.done)+'</span>'+
+    '<span class="check-label '+(item.done?'done':'')+'">'+item.text+'</span></div>'
+  ).join('') || '<p style="font-size:11px;color:var(--ink-muted);padding:6px 4px;">Nothing here yet</p>';
+  document.querySelectorAll('[data-toggle-mine]').forEach(el=>{
+    el.addEventListener('click', ()=>{
+      const [k,idx] = el.dataset.toggleMine.split(':');
+      mine[k][+idx].done = !mine[k][+idx].done;
+      renderMineAll();
+    });
+  });
+}
+function renderMineAll(){ renderMineList('buy','mineBuy'); renderMineList('visit','mineVisit'); renderMineList('try_','mineTry'); }
+
+document.getElementById('addCheckBtn').addEventListener('click', ()=>{
+  const inp = document.getElementById('newCheckItem'); const v = inp.value.trim();
+  if(!v) return; checklist.push({text:v,done:false}); inp.value=''; renderChecklist();
+});
+document.getElementById('addPackBtn').addEventListener('click', ()=>{
+  const inp = document.getElementById('newPackItem'); const v = inp.value.trim();
+  if(!v) return; packing.push({text:v,done:false}); inp.value=''; renderPacking();
+});
+[['addBuyBtn','newBuyItem','buy'],['addVisitBtn','newVisitItem','visit'],['addTryBtn','newTryItem','try_']].forEach(([btnId,inputId,key])=>{
+  document.getElementById(btnId).addEventListener('click', ()=>{
+    const inp = document.getElementById(inputId); const v = inp.value.trim();
+    if(!v) return; mine[key].push({text:v,done:false}); inp.value=''; renderMineAll();
+  });
+});
+
+document.querySelectorAll('.view-toggle button').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('.view-toggle button').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    const isGroup = btn.dataset.view==='group';
+    document.getElementById('groupView').style.display = isGroup?'block':'none';
+    document.getElementById('mineView').style.display = isGroup?'none':'block';
+  });
+});
+
+renderChecklist(); renderVisa(); renderPacking(); renderMineAll();
+
+if(isSolo){
+  // No group, so no reason to toggle between "Group" and "Mine" — it's
+  // all personal. Show everything in one flat scroll instead.
+  document.querySelector('.view-toggle').style.display = 'none';
+  document.getElementById('groupView').style.display = 'block';
+  document.getElementById('mineView').style.display = 'block';
+  document.querySelector('#groupView .section-title').textContent = 'Checklist';
+}
+
+</script>
+</body>
+</html>

@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Home — trip workspace</title>
+<style>
+
+:root{
+  --bg-1:       #FBF4F2;
+  --bg-2:       #F1E6EC;
+  --card:       #FFFFFF;
+  --card-tint:  #F6EFEC;
+  --ink:        #2C3A45;
+  --ink-soft:   #5C6B75;
+  --ink-muted:  #8B98A0;
+  --blue:       #6FA9C4;
+  --mint-bg:    #E5F2EB;
+  --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
+}
+*{ box-sizing:border-box; margin:0; padding:0; }
+body{
+  font-family:var(--font-sans); color:var(--ink);
+  background:linear-gradient(180deg, var(--bg-1), var(--bg-2));
+  min-height:100vh; padding:24px 16px 90px;
+}
+button{ font-family:inherit; }
+.wrap{ max-width:420px; margin:0 auto; }
+
+.frame{ background:var(--card-tint); border-radius:20px; padding:16px; margin-bottom:20px; }
+.card{ background:var(--card); border-radius:16px; padding:24px 18px; }
+
+.empty-state{ display:flex; flex-direction:column; align-items:center; text-align:center; gap:10px; padding:36px 20px; }
+.resume-state{ display:flex; flex-direction:column; align-items:center; text-align:center; gap:8px; padding:32px 20px; }
+.resume-icon{ width:44px; height:44px; border-radius:14px; background:#DCEBF2; display:flex; align-items:center; justify-content:center; margin-bottom:2px; }
+.resume-icon svg{ width:22px; height:22px; color:#2E6C88; }
+.resume-state h2{ font-size:17px; font-weight:600; }
+.resume-state p.meta{ font-size:12px; color:var(--ink-muted); }
+.end-trip-link{ font-size:11px; color:var(--ink-muted); text-decoration:underline; cursor:pointer; margin-top:2px; }
+.empty-icon{ width:44px; height:44px; color:var(--ink-muted); }
+.empty-state h2{ font-size:17px; font-weight:600; }
+.empty-state p{ font-size:13px; color:var(--ink-soft); }
+.btn-primary{ width:100%; background:var(--ink); color:#fff; border:none; border-radius:14px; padding:12px 0; font-size:14px; font-weight:500; cursor:pointer; margin-top:6px; }
+.btn-primary:hover{ opacity:0.92; }
+
+.frame-title{ font-size:14px; font-weight:600; margin:0 0 10px 4px; }
+.dest-scroll{ display:flex; gap:10px; overflow-x:auto; padding-bottom:2px; }
+.dest-card{ flex:0 0 108px; background:var(--card); border-radius:14px; overflow:hidden; box-shadow:0 2px 6px rgba(44,58,69,0.06); }
+.dest-card .scene{ width:100%; aspect-ratio:4/3; display:block; }
+.dest-card .scene svg{ width:100%; height:100%; display:block; }
+.dest-card-label{ padding:8px; }
+.dest-card-label p:first-child{ font-size:12px; font-weight:500; }
+.dest-card-label p:last-child{ font-size:10px; color:var(--ink-soft); margin-top:2px; }
+
+.visa-header{ display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; padding:0 4px; }
+.visa-header p{ font-size:13px; font-weight:600; }
+.visa-row{ display:flex; align-items:center; justify-content:space-between; background:var(--card); border-radius:12px; padding:10px 12px; margin-bottom:8px; }
+.visa-row:last-child{ margin-bottom:0; }
+.visa-row p{ font-size:12px; }
+.badge-success{ font-size:10px; background:var(--mint-bg); color:#3B6D48; padding:3px 9px; border-radius:8px; }
+
+.selector-overlay{ position:fixed; inset:0; background:rgba(44,58,69,0.4); z-index:100; display:none; align-items:center; justify-content:center; padding:20px; }
+.selector-overlay.open{ display:flex; }
+.selector-panel{ background:var(--bg-1); width:100%; max-width:360px; border-radius:18px; padding:24px 20px; text-align:center; }
+.selector-panel h3{ font-size:15px; font-weight:600; margin-bottom:16px; }
+.type-grid{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; }
+.type-btn{ display:flex; flex-direction:column; align-items:center; gap:6px; padding:16px 4px; background:var(--card); border:1px solid #E9E1DA; border-radius:14px; cursor:pointer; }
+.type-btn:hover{ border-color:var(--blue); }
+.type-btn svg{ width:22px; height:22px; color:var(--blue); }
+.type-btn span{ font-size:11px; font-weight:500; }
+
+.setup-card{ display:flex; flex-direction:column; gap:12px; }
+.setup-card h2{ font-size:16px; font-weight:600; }
+.setup-card label{ font-size:11px; color:var(--ink-soft); margin-bottom:-6px; }
+.setup-card input{ padding:10px 12px; border:1px solid #E9E1DA; border-radius:10px; font-size:16px; font-family:inherit; width:100%; }
+.date-row{ display:flex; gap:8px; }
+.date-row > div{ flex:1; display:flex; flex-direction:column; gap:4px; }
+
+#workspaceState{ display:none; }
+.ws-header{ margin-bottom:14px; }
+.ws-header h2{ font-size:17px; font-weight:600; }
+.ws-header p{ font-size:12px; color:var(--ink-soft); margin-top:2px; }
+
+.tab-bar{ display:flex; gap:6px; overflow-x:auto; margin-bottom:16px; padding-bottom:2px; }
+.tab-chip{ flex:0 0 auto; display:flex; align-items:center; gap:5px; padding:8px 12px; border-radius:20px; background:var(--card); border:1px solid #E9E1DA; font-size:11px; color:var(--ink-soft); cursor:pointer; white-space:nowrap; }
+.tab-chip svg{ width:14px; height:14px; }
+.tab-chip.active{ background:var(--ink); color:#fff; border-color:var(--ink); }
+.tab-chip.active svg{ color:#fff; }
+
+.tab-panel{ display:none; }
+.tab-panel.active{ display:block; }
+.panel-card{ background:var(--card); border-radius:16px; padding:20px 18px; }
+.panel-empty{ display:flex; flex-direction:column; align-items:center; text-align:center; gap:8px; padding:20px 10px; }
+.panel-empty svg{ width:30px; height:30px; color:var(--ink-muted); }
+.panel-empty h3{ font-size:14px; font-weight:600; }
+.panel-empty p{ font-size:12px; color:var(--ink-soft); }
+
+.chat-input-row{ display:flex; gap:8px; margin-top:14px; }
+.chat-input-row input{ flex:1; padding:10px 12px; border:1px solid #E9E1DA; border-radius:10px; font-size:16px; font-family:inherit; }
+.chat-input-row button{ padding:0 14px; border:none; border-radius:10px; background:var(--blue); color:#fff; cursor:pointer; font-size:12px; }
+
+.reset-link{ display:block; text-align:center; font-size:11px; color:var(--ink-muted); margin-top:18px; cursor:pointer; background:none; border:none; text-decoration:underline; }
+
+</style>
+</head>
+<body>
+
+<div class="wrap">
+
+  <div id="homeState">
+    <div class="frame">
+      <div class="card empty-state" id="emptyStateCard">
+        <svg class="empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M4 20l3-11 3 3 3-8 3 8 3-3 3 11H4z"/></svg>
+        <h2>Start your first trip</h2>
+        <p>Group, solo, or a long layover.</p>
+        <button class="btn-primary" id="createTripBtn">Create trip</button>
+      </div>
+      <div class="card resume-state" id="resumeCard" style="display:none;">
+        <div class="resume-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M13 2L3 14h7v8l10-12h-7z"/></svg></div>
+        <h2 id="resumeTripName">Your trip</h2>
+        <p class="meta" id="resumeTripMeta">In progress</p>
+        <button class="btn-primary" id="resumeBtn">Resume trip →</button>
+        <span class="end-trip-link" id="endTripLink">End this trip</span>
+      </div>
+    </div>
+
+    <div class="frame">
+      <p class="frame-title">Curated picks this month</p>
+      <div class="dest-scroll">
+        <div class="dest-card"><div class="scene" id="scene-ladakh"></div><div class="dest-card-label"><p>Ladakh, India</p><p>Peak season now</p></div></div>
+        <div class="dest-card"><div class="scene" id="scene-bali"></div><div class="dest-card-label"><p>Bali</p><p>Dry season</p></div></div>
+        <div class="dest-card"><div class="scene" id="scene-bhutan"></div><div class="dest-card-label"><p>Bhutan</p><p>Clear skies</p></div></div>
+      </div>
+    </div>
+
+    <div class="frame" id="popularInFrame">
+      <p class="frame-title" id="popularInTitle">Popular in Japan</p>
+      <div class="dest-scroll" id="popularInScroll">
+        <div class="dest-card"><div class="scene" id="scene-tokyo"></div><div class="dest-card-label"><p>Tokyo</p><p>City & skyline</p></div></div>
+        <div class="dest-card"><div class="scene" id="scene-kyoto"></div><div class="dest-card-label"><p>Kyoto</p><p>Temples & gardens</p></div></div>
+        <div class="dest-card"><div class="scene" id="scene-osaka"></div><div class="dest-card-label"><p>Osaka</p><p>Street food</p></div></div>
+      </div>
+    </div>
+
+    <div class="frame">
+      <div class="visa-header"><p>Visa-free from India</p></div>
+      <div class="visa-row"><p>Thailand</p><span class="badge-success">Visa-free</span></div>
+      <div class="visa-row"><p>Sri Lanka</p><span class="badge-success">Visa on arrival</span></div>
+      <div class="visa-row"><p>Indonesia</p><span class="badge-success">Visa-free</span></div>
+    </div>
+  </div>
+
+  <div id="setupState" style="display:none;">
+    <div class="frame">
+      <div class="card setup-card">
+        <h2 id="setupTitle">New trip</h2>
+        <label for="tripName">Trip name</label>
+        <input type="text" id="tripName" placeholder="Bali with the crew">
+        <div class="date-row">
+          <div>
+            <label for="startDate">Start date</label>
+            <input type="date" id="startDate">
+          </div>
+          <div>
+            <label for="endDate">End date</label>
+            <input type="date" id="endDate">
+          </div>
+        </div>
+        <button class="btn-primary" id="enterWorkspaceBtn">Start planning</button>
+      </div>
+    </div>
+    <button class="reset-link" id="resetBtnSetup">← back to home (demo reset)</button>
+  </div>
+
+  <div id="layoverState" style="display:none;">
+    <div class="frame">
+      <div class="card setup-card">
+        <h2>Long layover?</h2>
+        <p style="font-size:12px;color:var(--ink-soft);">Tell the assistant where you're stuck and for how long — it'll build a plan that respects security and boarding buffers.</p>
+        <label for="layoverPlace">Airport or city</label>
+        <input type="text" id="layoverPlace" placeholder="Singapore Changi">
+        <label for="layoverHours">Hours free</label>
+        <input type="text" id="layoverHours" placeholder="6">
+        <button class="btn-primary">Build my micro-plan</button>
+        <p style="font-size:10px;color:var(--ink-muted);">Transit eligibility depends on your passport — verified for select routes only.</p>
+      </div>
+    </div>
+    <button class="reset-link" id="resetBtnLayover">← back to home (demo reset)</button>
+  </div>
+
+  <div id="workspaceState">
+    <div class="card" style="text-align:center; padding:36px 20px;">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" style="width:36px;height:36px;color:var(--mint,#8FC2A9);margin-bottom:10px;"><path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="9"/></svg>
+      <h2 id="wsTripName" style="font-size:16px;font-weight:600;">Trip</h2>
+      <p id="wsTripDates" style="font-size:12px;color:var(--ink-muted);margin-top:2px;">—</p>
+      <p style="font-size:12px;color:var(--ink-soft);margin-top:14px;">You're all set — use the tabs above to start planning.</p>
+    </div>
+    <button class="reset-link" id="resetBtnWorkspace">← back to home (demo reset)</button>
+  </div>
+
+</div>
+
+<div class="selector-overlay" id="selectorOverlay">
+  <div class="selector-panel">
+    <h3>What kind of trip is this?</h3>
+    <div class="type-grid">
+      <button class="type-btn" data-type="solo">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="8" r="4"/><path d="M4 21v-1a8 8 0 0116 0v1"/></svg>
+        <span>Solo</span>
+      </button>
+      <button class="type-btn" data-type="group">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="9" cy="8" r="3.2"/><circle cx="17" cy="9" r="2.6"/><path d="M2.5 20v-1a6.5 6.5 0 0113 0v1M14.5 20v-.6a5 5 0 015.8-4.9"/></svg>
+        <span>Group</span>
+      </button>
+      <button class="type-btn" data-type="layover">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+        <span>Layover</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+const scenes = {
+  ladakh: `<svg viewBox="0 0 200 150" preserveAspectRatio="xMidYMax slice"><rect width="200" height="150" fill="#E3D9C8"/><polygon points="0,110 40,50 70,90 100,40 140,95 180,70 200,90 200,150 0,150" fill="#A8A296"/><polygon points="40,50 48,64 32,64" fill="#fff"/><polygon points="100,40 110,58 90,58" fill="#fff"/></svg>`,
+  bali: `<svg viewBox="0 0 200 150" preserveAspectRatio="xMidYMax slice"><rect width="200" height="150" fill="#F6D9C2"/><circle cx="160" cy="35" r="16" fill="#FCEFD8"/><path d="M0 100 Q40 80 80 100 T160 100 T200 92 V150 H0 Z" fill="#7A9E6E"/><path d="M35 100 L40 60 L45 100 Z" fill="#5C7E52"/></svg>`,
+  bhutan: `<svg viewBox="0 0 200 150" preserveAspectRatio="xMidYMax slice"><rect width="200" height="150" fill="#CFE3EE"/><polygon points="0,110 50,40 90,90 130,30 170,95 200,70 200,150 0,150" fill="#7E97A5"/><polygon points="50,40 60,58 40,58" fill="#fff"/><polygon points="130,30 142,52 118,52" fill="#fff"/></svg>`,
+  tokyo: `<svg viewBox="0 0 200 150" preserveAspectRatio="xMidYMax slice"><rect width="200" height="150" fill="#E9DDC2"/><rect x="25" y="70" width="22" height="80" fill="#8B8579"/><rect x="55" y="50" width="26" height="100" fill="#736D62"/><rect x="90" y="85" width="20" height="65" fill="#9A9384"/><rect x="120" y="40" width="28" height="110" fill="#605A50"/><rect x="155" y="65" width="22" height="85" fill="#8B8579"/><circle cx="160" cy="28" r="14" fill="#F0C77A"/></svg>`,
+  kyoto: `<svg viewBox="0 0 200 150" preserveAspectRatio="xMidYMax slice"><rect width="200" height="150" fill="#F0DCC0"/><rect x="60" y="78" width="80" height="60" fill="#B5453B"/><polygon points="48,78 100,50 152,78" fill="#5C4A3A"/><rect x="75" y="46" width="50" height="32" fill="#B5453B"/><polygon points="66,46 100,26 134,46" fill="#5C4A3A"/><path d="M0 128 Q50 112 100 128 T200 124 V150 H0 Z" fill="#7A9E6E"/></svg>`,
+  osaka: `<svg viewBox="0 0 200 150" preserveAspectRatio="xMidYMax slice"><rect width="200" height="150" fill="#E7D9C4"/><rect x="70" y="60" width="60" height="65" fill="#5C7E52"/><rect x="82" y="40" width="36" height="24" fill="#4A6B42"/><circle cx="100" cy="30" r="8" fill="#F0C77A"/><path d="M0 118 Q50 104 100 118 T200 112 V150 H0 Z" fill="#7A9E6E"/></svg>`
+};
+Object.keys(scenes).forEach(k=>{
+  const el = document.getElementById('scene-'+k);
+  if(el) el.innerHTML = scenes[k];
+});
+
+// ---- Personalization: "Popular in ___" ----
+// This is deliberately NOT AI-driven — AI can't manufacture real popularity
+// data, and pretending otherwise would just be lying with extra steps.
+// This is a simple, honest signal: what has this person actually shown
+// interest in (their own Bucketlist), matched against a small curated set
+// of countries this demo has real content for.
+//
+// KNOWN LIMITATION, on purpose: matching free-text place names to a country
+// needs a real lookup here since there's no geocoding call. It covers the
+// destinations already used throughout this app. A production version
+// would resolve arbitrary user input via a real places/geocoding API
+// instead of a hardcoded table like this.
+const countryData = {
+  Japan: {
+    cards: [
+      { key:'tokyo', label:'Tokyo', sub:'City & skyline' },
+      { key:'kyoto', label:'Kyoto', sub:'Temples & gardens' },
+      { key:'osaka', label:'Osaka', sub:'Street food' },
+    ]
+  },
+  Indonesia: {
+    cards: [
+      { key:'ubud', label:'Ubud', sub:'Rice terraces' },
+      { key:'seminyak', label:'Seminyak', sub:'Beach clubs' },
+      { key:'uluwatu', label:'Uluwatu', sub:'Cliffside temples' },
+    ]
+  },
+  Portugal: {
+    cards: [
+      { key:'lisbonalfama', label:'Alfama', sub:'Old town streets' },
+      { key:'lisbonbelem', label:'Belém', sub:'Riverside towers' },
+      { key:'porto', label:'Porto', sub:'Wine cellars' },
+    ]
+  },
+  'Sri Lanka': {
+    cards: [
+      { key:'sigiriya', label:'Sigiriya', sub:'Rock fortress' },
+      { key:'ella', label:'Ella', sub:'Hill country' },
+      { key:'mirissa', label:'Mirissa', sub:'Whale watching' },
+    ]
+  }
+};
+const extraScenes = {
+  ubud: `<svg viewBox="0 0 200 150" preserveAspectRatio="xMidYMax slice"><rect width="200" height="150" fill="#E8DDC7"/><path d="M0 100 Q40 80 80 100 T160 96 T200 100 V150 H0 Z" fill="#7A9E6E"/><path d="M20 100 L28 55 L36 100 Z" fill="#5C7E52"/><path d="M50 100 L58 48 L66 100 Z" fill="#6B8F5F"/><rect x="90" y="75" width="55" height="30" fill="#B08B5C"/></svg>`,
+  seminyak: `<svg viewBox="0 0 200 150" preserveAspectRatio="xMidYMax slice"><rect width="200" height="150" fill="#BFE0EE"/><rect x="0" y="95" width="200" height="55" fill="#F6D9C2"/><circle cx="160" cy="30" r="14" fill="#FCEFD8"/><rect x="40" y="70" width="10" height="30" fill="#D99A85"/><rect x="60" y="65" width="10" height="35" fill="#E8B4A0"/></svg>`,
+  uluwatu: `<svg viewBox="0 0 200 150" preserveAspectRatio="xMidYMax slice"><rect width="200" height="150" fill="#DCEBF2"/><polygon points="0,150 0,90 60,60 120,95 200,70 200,150" fill="#8B8579"/><rect x="80" y="55" width="18" height="35" fill="#5C4A3A"/></svg>`,
+  lisbonalfama: `<svg viewBox="0 0 200 150" preserveAspectRatio="xMidYMax slice"><rect width="200" height="150" fill="#F6E6D5"/><rect x="15" y="70" width="30" height="80" fill="#E8B4A0"/><rect x="50" y="45" width="35" height="105" fill="#D99A85"/><rect x="90" y="80" width="25" height="70" fill="#E8B4A0"/><rect x="120" y="55" width="30" height="95" fill="#D99A85"/></svg>`,
+  lisbonbelem: `<svg viewBox="0 0 200 150" preserveAspectRatio="xMidYMax slice"><rect width="200" height="150" fill="#DCEBF2"/><rect x="80" y="45" width="30" height="80" fill="#F4F0E6"/><rect x="72" y="30" width="46" height="18" fill="#F4F0E6"/><rect x="0" y="120" width="200" height="30" fill="#6E93A8"/></svg>`,
+  porto: `<svg viewBox="0 0 200 150" preserveAspectRatio="xMidYMax slice"><rect width="200" height="150" fill="#E9DDC2"/><rect x="20" y="60" width="24" height="70" fill="#B5453B"/><rect x="48" y="45" width="24" height="85" fill="#8B8579"/><rect x="80" y="65" width="24" height="65" fill="#B5453B"/><rect x="0" y="125" width="200" height="25" fill="#6E93A8"/></svg>`,
+  sigiriya: `<svg viewBox="0 0 200 150" preserveAspectRatio="xMidYMax slice"><rect width="200" height="150" fill="#DCEBF2"/><polygon points="60,150 100,35 140,150" fill="#8B8579"/><rect x="0" y="140" width="200" height="10" fill="#7A9E6E"/></svg>`,
+  ella: `<svg viewBox="0 0 200 150" preserveAspectRatio="xMidYMax slice"><rect width="200" height="150" fill="#E8DDC7"/><polygon points="0,110 40,70 70,100 100,55 140,105 200,80 200,150 0,150" fill="#7A9E6E"/></svg>`,
+  mirissa: `<svg viewBox="0 0 200 150" preserveAspectRatio="xMidYMax slice"><rect width="200" height="150" fill="#BFE0EE"/><rect x="0" y="110" width="200" height="40" fill="#F6D9C2"/><circle cx="150" cy="30" r="14" fill="#FCEFD8"/></svg>`,
+  // Neutral placeholder scene for the hundreds of real countries that get
+  // matched correctly (via genuine geocoding) but don't have bespoke
+  // illustrated art yet — honest generic art, not pretending to be a
+  // specific place we haven't actually drawn.
+  genericplace: `<svg viewBox="0 0 200 150" preserveAspectRatio="xMidYMax slice"><rect width="200" height="150" fill="#DCEBF2"/><path d="M100 40c-15 0-27 12-27 27 0 20 27 48 27 48s27-28 27-48c0-15-12-27-27-27z" fill="none" stroke="#6FA9C4" stroke-width="3"/><circle cx="100" cy="67" r="9" fill="#6FA9C4"/></svg>`,
+};
+Object.assign(scenes, extraScenes);
+
+// Real country resolution — bucketlistPlaces carries genuine geocoded
+// country names (from Nominatim, via bucketlist.html), covering every
+// country in the world. No hand-written matching table anymore.
+function pickCountryFromBucketlist(places){
+  if(!places || places.length === 0) return null;
+  const withCountry = places.find(p => p.country);
+  return withCountry ? { country: withCountry.country, places: places.filter(p=>p.country===withCountry.country) } : null;
+}
+
+function renderPopularIn(bucketlistPlaces){
+  const resolved = pickCountryFromBucketlist(bucketlistPlaces);
+
+  if(!resolved){
+    // No signal yet — show the unpersonalized default, honestly unlabeled
+    document.getElementById('popularInTitle').textContent = 'Popular in Japan';
+    renderCards(countryData.Japan.cards);
+    return;
+  }
+
+  const country = resolved.country;
+  const bespoke = countryData[country];
+
+  if(bespoke){
+    // Real curated destination content — "Popular in ___" is an honest
+    // claim here, we actually have researched picks to back it up.
+    document.getElementById('popularInTitle').innerHTML =
+      'Popular in ' + country +
+      ' <span style="font-size:9px;font-weight:500;color:var(--ink-muted);">· from your Bucketlist</span>';
+    renderCards(bespoke.cards);
+  } else {
+    // No curated content for this country yet — "Popular in ___" would be
+    // a claim we can't back up, so this gets its own honest title instead
+    // of borrowing language that implies research we haven't done.
+    document.getElementById('popularInTitle').textContent = 'From your Bucketlist — ' + country;
+    const cards = resolved.places.slice(0,3).map(p => ({ key:'genericplace', label:p.name, sub:'Saved by you', photo:p.photo || null, editable:true }));
+    renderCards(cards);
+  }
+}
+
+function renderCards(cards){
+  document.getElementById('popularInScroll').innerHTML = cards.map((c,i)=>
+    '<div class="dest-card" '+(c.editable ? 'style="cursor:pointer;" data-edit-place="'+c.label.replace(/"/g,'&quot;')+'"' : '')+'>'+
+      '<div class="scene" id="scene-slot-'+i+'">'+
+        (c.photo ? '<img src="'+c.photo+'" alt="" style="width:100%;height:100%;object-fit:cover;display:block;">' : '') +
+      '</div><div class="dest-card-label"><p>'+c.label+'</p><p>'+c.sub+'</p></div></div>'
+  ).join('');
+  cards.forEach((c,i)=>{
+    if(c.photo) return;
+    const el = document.getElementById('scene-slot-'+i);
+    if(el && scenes[c.key]) el.innerHTML = scenes[c.key];
+  });
+  document.querySelectorAll('[data-edit-place]').forEach(el=>{
+    el.addEventListener('click', ()=>{
+      if(window.parent !== window){
+        window.parent.postMessage({ navigateTo:'bucketlist', focusPlace: el.dataset.editPlace }, '*');
+      }
+    });
+  });
+}
+renderPopularIn([]); // default state before any bucketlist data has arrived
+
+const homeState = document.getElementById('homeState');
+const setupState = document.getElementById('setupState');
+const layoverState = document.getElementById('layoverState');
+const workspaceState = document.getElementById('workspaceState');
+const overlay = document.getElementById('selectorOverlay');
+
+function hideAll(){
+  homeState.style.display = 'none';
+  setupState.style.display = 'none';
+  layoverState.style.display = 'none';
+  workspaceState.style.display = 'none';
+}
+
+document.getElementById('createTripBtn').addEventListener('click', ()=> overlay.classList.add('open'));
+overlay.addEventListener('click', e=>{ if(e.target===overlay) overlay.classList.remove('open'); });
+
+let pendingType = 'group';
+
+document.querySelectorAll('.type-btn').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    overlay.classList.remove('open');
+    pendingType = btn.dataset.type;
+    hideAll();
+
+    if(pendingType === 'layover'){
+      layoverState.style.display = 'block';
+      return;
+    }
+
+    document.getElementById('setupTitle').textContent = pendingType === 'solo' ? 'New solo trip' : 'New group trip';
+    setupState.style.display = 'block';
+  });
+});
+
+document.getElementById('enterWorkspaceBtn').addEventListener('click', ()=>{
+  const name = document.getElementById('tripName').value.trim() || (pendingType==='solo' ? 'My solo trip' : 'New trip');
+  const start = document.getElementById('startDate').value;
+  const end = document.getElementById('endDate').value;
+
+  document.getElementById('wsTripName').textContent = name;
+  document.getElementById('wsTripDates').textContent = (start && end) ? formatRange(start,end) : 'Dates not set yet';
+
+  hideAll();
+  workspaceState.style.display = 'block';
+
+  // Tell the shell a trip now exists — this is what reveals the tab bar.
+  // Before this point there was nothing to navigate to; now there is.
+  if(window.parent !== window){
+    window.parent.postMessage({ tripCreated:true, tripName:name, tripType:pendingType }, '*');
+  }
+});
+
+function formatRange(start,end){
+  const opts = { day:'numeric', month:'short' };
+  const s = new Date(start).toLocaleDateString('en-GB', opts);
+  const e = new Date(end).toLocaleDateString('en-GB', opts);
+  return s + ' – ' + e;
+}
+
+function resetToHome(){
+  // This is for abandoning an in-progress setup flow (picked a type, didn't
+  // finish) — no trip exists yet at this point, so the shell has nothing
+  // to do in response; this stays purely local to this page.
+  hideAll();
+  homeState.style.display = 'block';
+}
+document.getElementById('resetBtnSetup').addEventListener('click', resetToHome);
+document.getElementById('resetBtnLayover').addEventListener('click', resetToHome);
+document.getElementById('resetBtnWorkspace').addEventListener('click', resetToHome);
+
+// The shell tells us whether a trip is currently active every time we're
+// navigated to — this is what lets Frame 1 show "Resume your trip" instead
+// of forgetting an in-progress trip ever existed. It also carries the
+// latest Bucketlist names so "Popular in ___" can personalize itself.
+window.addEventListener('message', e=>{
+  if(!e.data || !e.data.tripStatus) return;
+  const status = e.data.tripStatus;
+
+  // THE ACTUAL FIX: force this page back to its real homeState div first.
+  // If a trip was just created, this iframe's OWN internal state is still
+  // sitting on workspaceState (the "you're all set" card) from that flow —
+  // just toggling the resume/empty cards inside homeState does nothing
+  // visible if homeState itself is still hidden.
+  hideAll();
+  homeState.style.display = 'block';
+
+  if(typeof renderPopularIn === 'function') renderPopularIn(e.data.bucketlistPlaces || []);
+
+  document.getElementById('emptyStateCard').style.display = status.active ? 'none' : 'flex';
+  document.getElementById('resumeCard').style.display = status.active ? 'flex' : 'none';
+  if(status.active){
+    document.getElementById('resumeTripName').textContent = status.name || 'Your trip';
+    document.getElementById('resumeTripMeta').textContent = (status.type === 'solo' ? 'Solo trip' : 'Group trip') + ' · in progress';
+  }
+});
+
+document.getElementById('resumeBtn').addEventListener('click', ()=>{
+  if(window.parent !== window) window.parent.postMessage({ resumeTrip:true }, '*');
+});
+document.getElementById('endTripLink').addEventListener('click', ()=>{
+  if(window.parent !== window) window.parent.postMessage({ endTripRequested:true }, '*');
+});
+</script>
+</body>
+</html>

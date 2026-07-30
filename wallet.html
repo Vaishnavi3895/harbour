@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Wallet</title>
+<style>
+:root{
+  --bg-1:#FBF4F2; --bg-2:#F1E6EC; --card:#FFFFFF; --card-tint:#F6EFEC;
+  --ink:#2C3A45; --ink-soft:#5C6B75; --ink-muted:#8B98A0;
+  --blue:#6FA9C4; --blue-bg:#DCEBF2; --blue-text:#2E6C88;
+  --mint-bg:#E5F2EB; --mint-text:#3B6D48;
+  --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
+}
+*{ box-sizing:border-box; margin:0; padding:0; }
+body{ font-family:var(--font-sans); color:var(--ink); background:linear-gradient(180deg,var(--bg-1),var(--bg-2)); min-height:100vh; padding:20px 16px 40px; }
+button{ font-family:inherit; }
+.wrap{ max-width:420px; margin:0 auto; }
+.tab-header{ margin-bottom:14px; } .tab-header h1{ font-size:17px; font-weight:600; } .tab-header p{ font-size:11px; color:var(--ink-muted); }
+.panel{ background:var(--card-tint); border-radius:20px; padding:14px; margin-bottom:16px; }
+
+.traveller-tabs{ display:flex; gap:6px; margin-bottom:12px; }
+.traveller-chip{ flex:1; padding:8px 0; border-radius:10px; background:var(--card); border:1px solid #E9E1DA; font-size:11.5px; color:var(--ink-soft); cursor:pointer; text-align:center; }
+.traveller-chip.active{ background:var(--ink); color:#fff; border-color:var(--ink); }
+
+.section-title{ font-size:12px; font-weight:600; margin:14px 4px 8px; color:var(--ink-soft); }
+.passport-card{ background:var(--card); border-radius:12px; padding:12px; display:flex; align-items:center; gap:10px; }
+.passport-icon{ width:36px; height:36px; border-radius:10px; background:var(--blue-bg); display:flex; align-items:center; justify-content:center; flex:0 0 36px; }
+.passport-icon svg{ width:16px; height:16px; color:var(--blue-text); }
+.passport-details{ flex:1; }
+.passport-details p{ font-size:12px; } .passport-details p.sub{ font-size:10px; color:var(--ink-muted); margin-top:2px; }
+.security-note{ font-size:9.5px; color:var(--ink-muted); margin-top:6px; padding:0 2px; }
+
+.doc-row{ display:flex; align-items:center; justify-content:space-between; background:var(--card); border-radius:12px; padding:10px 12px; margin-bottom:8px; }
+.doc-left{ display:flex; align-items:center; gap:10px; }
+.doc-icon{ width:32px; height:32px; border-radius:9px; background:var(--mint-bg); display:flex; align-items:center; justify-content:center; flex:0 0 32px; }
+.doc-icon svg{ width:14px; height:14px; color:var(--mint-text); }
+.doc-row p{ font-size:12px; } .doc-row p.sub{ font-size:10px; color:var(--ink-muted); }
+.doc-row svg.download{ width:15px; height:15px; color:var(--ink-muted); cursor:pointer; }
+
+.add-doc-btn{ width:100%; padding:9px 0; border-radius:10px; border:1px dashed #C9BEB4; background:none; color:var(--ink-soft); font-size:11.5px; cursor:pointer; margin-top:4px; }
+.empty-state{ font-size:11px; color:var(--ink-muted); text-align:center; padding:16px 0; }
+
+.modal-overlay{ position:fixed; inset:0; background:rgba(44,58,69,0.4); z-index:100; display:none; align-items:center; justify-content:center; padding:20px; }
+.modal-overlay.open{ display:flex; }
+.modal{ background:var(--bg-1); width:100%; max-width:340px; border-radius:16px; padding:20px; }
+.modal h3{ font-size:14px; margin-bottom:12px; }
+.modal input{ width:100%; padding:9px 10px; border:1px solid #E9E1DA; border-radius:8px; font-size:16px; margin-bottom:8px; font-family:inherit; }
+.modal label{ font-size:10.5px; color:var(--ink-soft); display:block; margin-bottom:6px; }
+.file-drop{ border:1.5px dashed #C9BEB4; border-radius:10px; padding:18px; text-align:center; font-size:11.5px; color:var(--ink-muted); cursor:pointer; margin-bottom:10px; }
+.modal-actions{ display:flex; gap:8px; margin-top:6px; }
+.modal-actions button{ flex:1; padding:9px 0; border-radius:8px; cursor:pointer; font-size:12px; border:none; }
+.btn-primary{ background:var(--ink); color:#fff; }
+.btn-cancel{ background:none; border:1px solid #E9E1DA !important; color:var(--ink-soft); }
+
+</style>
+</head>
+<body>
+
+
+
+<div class="wrap">
+  <div class="tab-header"><h1>Wallet</h1><p>Bali, 4–8 Aug</p></div>
+
+  <div class="panel">
+    <div class="traveller-tabs" id="travellerTabs"></div>
+
+    <p class="section-title">Passport</p>
+    <div class="passport-card" id="passportCard"></div>
+    <p class="security-note">Number + expiry only — no scanned copies stored, by design</p>
+
+    <p class="section-title">Documents</p>
+    <div id="docList"></div>
+    <button class="add-doc-btn" id="addDocBtn">+ Add a document</button>
+  </div>
+</div>
+
+<div class="modal-overlay" id="docModal">
+  <div class="modal">
+    <h3>Add a document</h3>
+    <input type="text" id="docName" placeholder="e.g. Flight confirmation">
+    <div class="file-drop" id="fileDrop">Tap to choose a file</div>
+    <input type="file" id="fileInput" style="display:none;">
+    <div class="modal-actions">
+      <button class="btn-cancel" data-close="docModal">Cancel</button>
+      <button class="btn-primary" id="docSave">Save</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="passportModal">
+  <div class="modal">
+    <h3>Edit passport details</h3>
+    <label>Passport number</label>
+    <input type="text" id="passNum">
+    <label>Expiry date</label>
+    <input type="date" id="passExpiry">
+    <div class="modal-actions">
+      <button class="btn-cancel" data-close="passportModal">Cancel</button>
+      <button class="btn-primary" id="passportSave">Save</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const tripType = new URLSearchParams(window.location.search).get('tripType') || window.__PRESET_TRIP_TYPE || 'group';
+const isSolo = tripType === 'solo';
+
+const travellers = isSolo
+  ? { 'You': { passportNum:'M1234567', expiry:'2029-03-14', docs:[] } }
+  : {
+      'You':  { passportNum:'M1234567', expiry:'2029-03-14', docs:[] },
+      'Ria':  { passportNum:'', expiry:'', docs:[] },
+      'Sam':  { passportNum:'K9988771', expiry:'2027-11-02', docs:[] },
+      'Arjun':{ passportNum:'', expiry:'', docs:[] },
+    };
+let activeTraveller = 'You';
+
+const travellerTabs = document.getElementById('travellerTabs');
+const passportCard = document.getElementById('passportCard');
+const docList = document.getElementById('docList');
+
+function fmtDate(d){
+  if(!d) return '';
+  const opts = { day:'numeric', month:'short', year:'numeric' };
+  return new Date(d).toLocaleDateString('en-GB', opts);
+}
+
+function renderTabs(){
+  if(isSolo){ travellerTabs.style.display = 'none'; return; } // only one wallet, no switcher needed
+  travellerTabs.innerHTML = Object.keys(travellers).map(t=>
+    '<button class="traveller-chip '+(t===activeTraveller?'active':'')+'" data-t="'+t+'">'+t+'</button>'
+  ).join('');
+  travellerTabs.querySelectorAll('[data-t]').forEach(el=>{
+    el.addEventListener('click', ()=>{ activeTraveller = el.dataset.t; renderTabs(); renderAll(); });
+  });
+}
+
+function renderPassport(){
+  const t = travellers[activeTraveller];
+  if(!t.passportNum){
+    passportCard.innerHTML = '<div class="passport-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M21 12V7H5a2 2 0 010-4h14v4M3 5v14a2 2 0 002 2h16v-5M18 12a2 2 0 100 4 2 2 0 000-4z"/></svg></div>'+
+      '<div class="passport-details" style="cursor:pointer;" id="addPassportTrigger"><p>No passport details yet</p><p class="sub">Tap to add</p></div>';
+    document.getElementById('addPassportTrigger').addEventListener('click', openPassportModal);
+  } else {
+    passportCard.innerHTML = '<div class="passport-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M21 12V7H5a2 2 0 010-4h14v4M3 5v14a2 2 0 002 2h16v-5M18 12a2 2 0 100 4 2 2 0 000-4z"/></svg></div>'+
+      '<div class="passport-details" style="cursor:pointer;" id="editPassportTrigger"><p>'+t.passportNum+'</p><p class="sub">Expires '+fmtDate(t.expiry)+'</p></div>';
+    document.getElementById('editPassportTrigger').addEventListener('click', openPassportModal);
+  }
+}
+
+function openPassportModal(){
+  const t = travellers[activeTraveller];
+  document.getElementById('passNum').value = t.passportNum;
+  document.getElementById('passExpiry').value = t.expiry;
+  openModal('passportModal');
+}
+document.getElementById('passportSave').addEventListener('click', ()=>{
+  travellers[activeTraveller].passportNum = document.getElementById('passNum').value.trim();
+  travellers[activeTraveller].expiry = document.getElementById('passExpiry').value;
+  closeModal('passportModal');
+  renderPassport();
+});
+
+function renderDocs(){
+  const docs = travellers[activeTraveller].docs;
+  if(docs.length===0){
+    docList.innerHTML = '<p class="empty-state">No documents yet</p>';
+    return;
+  }
+  docList.innerHTML = docs.map((d,i)=>
+    '<div class="doc-row"><div class="doc-left"><div class="doc-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6"/></svg></div>'+
+    '<div><p>'+d.name+'</p><p class="sub">'+d.fileName+'</p></div></div>'+
+    '<svg class="download" data-download="'+i+'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg></div>'
+  ).join('');
+  docList.querySelectorAll('[data-download]').forEach(el=>{
+    el.addEventListener('click', ()=>{
+      const doc = docs[+el.dataset.download];
+      const a = document.createElement('a');
+      a.href = doc.dataUrl;
+      a.download = doc.fileName;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    });
+  });
+}
+
+document.getElementById('addDocBtn').addEventListener('click', ()=>{
+  document.getElementById('docName').value = '';
+  document.getElementById('fileDrop').textContent = 'Tap to choose a file';
+  openModal('docModal');
+});
+document.getElementById('fileDrop').addEventListener('click', ()=> document.getElementById('fileInput').click());
+document.getElementById('fileInput').addEventListener('change', ()=>{
+  const f = document.getElementById('fileInput').files[0];
+  if(f) document.getElementById('fileDrop').textContent = f.name;
+});
+document.getElementById('docSave').addEventListener('click', ()=>{
+  const name = document.getElementById('docName').value.trim();
+  const file = document.getElementById('fileInput').files[0];
+  const drop = document.getElementById('fileDrop');
+  if(!name){ document.getElementById('docName').focus(); return; }
+  if(!file){ drop.textContent = 'Choose a file to continue'; drop.style.color = 'var(--danger, #D45C6B)'; return; }
+  const reader = new FileReader();
+  reader.onload = ()=>{
+    travellers[activeTraveller].docs.push({ name, fileName: file.name, dataUrl: reader.result });
+    closeModal('docModal');
+    renderDocs();
+  };
+  reader.readAsDataURL(file);
+});
+
+function renderAll(){ renderPassport(); renderDocs(); }
+function openModal(id){ document.getElementById(id).classList.add('open'); }
+function closeModal(id){ document.getElementById(id).classList.remove('open'); }
+document.querySelectorAll('[data-close]').forEach(b=> b.addEventListener('click', ()=> closeModal(b.dataset.close)));
+
+renderTabs();
+renderAll();
+
+</script>
+</body>
+</html>

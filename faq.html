@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>FAQ & Helplines</title>
+<style>
+:root{
+  --bg-1:#FBF4F2; --bg-2:#F1E6EC; --card:#FFFFFF; --card-tint:#F6EFEC;
+  --ink:#2C3A45; --ink-soft:#5C6B75; --ink-muted:#8B98A0;
+  --blue:#6FA9C4; --blue-bg:#DCEBF2; --blue-text:#2E6C88;
+  --amber-bg:#FCEFD8; --amber-text:#8A6423;
+  --mint-bg:#E5F2EB; --mint-text:#3B6D48;
+  --danger:#D45C6B; --danger-bg:#FBE3E3;
+  --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
+}
+*{ box-sizing:border-box; margin:0; padding:0; }
+body{ font-family:var(--font-sans); color:var(--ink); background:linear-gradient(180deg,var(--bg-1),var(--bg-2)); min-height:100vh; padding:20px 16px 90px; }
+button{ font-family:inherit; }
+.wrap{ max-width:420px; margin:0 auto; }
+.tab-header{ margin-bottom:14px; } .tab-header h1{ font-size:17px; font-weight:600; } .tab-header p{ font-size:11px; color:var(--ink-muted); }
+.panel{ background:var(--card-tint); border-radius:20px; padding:14px; margin-bottom:16px; }
+
+.place-tabs{ display:flex; gap:6px; overflow-x:auto; margin-bottom:12px; padding-bottom:2px; }
+.place-chip{ flex:0 0 auto; padding:7px 14px; border-radius:10px; background:var(--card); border:1px solid #E9E1DA; font-size:11px; color:var(--ink-soft); cursor:pointer; }
+.place-chip.active{ background:var(--ink); color:#fff; border-color:var(--ink); }
+
+.safety-note{ background:var(--amber-bg); border-radius:12px; padding:11px 12px; display:flex; gap:8px; align-items:flex-start; margin-bottom:12px; }
+.safety-note svg{ width:15px; height:15px; color:var(--amber-text); flex:0 0 auto; margin-top:1px; }
+.safety-note p{ font-size:11.5px; color:var(--amber-text); flex:1; }
+.verified-tag{ font-size:9px; color:var(--mint-text); background:var(--mint-bg); padding:2px 7px; border-radius:6px; white-space:nowrap; }
+.pending-tag{ font-size:9px; color:var(--amber-text); background:var(--amber-bg); padding:2px 7px; border-radius:6px; white-space:nowrap; }
+
+.section-title{ font-size:12px; font-weight:600; margin:14px 4px 8px; color:var(--ink-soft); }
+.essentials-row{ display:flex; justify-content:space-between; align-items:center; background:var(--card); border-radius:12px; padding:10px 12px; margin-bottom:8px; cursor:pointer; }
+.essentials-row .left{ display:flex; align-items:center; gap:10px; }
+.essentials-icon{ width:32px; height:32px; border-radius:9px; background:var(--blue-bg); display:flex; align-items:center; justify-content:center; flex:0 0 32px; }
+.essentials-icon svg{ width:15px; height:15px; color:var(--blue-text); }
+.essentials-row p{ font-size:12px; } .essentials-row p.sub{ font-size:10px; color:var(--ink-muted); }
+.essentials-row svg.chevron{ width:14px; height:14px; color:var(--ink-muted); }
+
+.info-list{ display:flex; flex-direction:column; gap:6px; }
+.info-row{ font-size:11.5px; color:var(--ink-soft); background:var(--card); border-radius:10px; padding:9px 11px; }
+.info-row b{ color:var(--ink); }
+
+.crowdsourced-card{ background:var(--card); border-radius:12px; padding:10px 12px; margin-bottom:8px; }
+.crowdsourced-card p.quote{ font-size:11.5px; }
+.crowdsourced-card p.meta{ font-size:9.5px; color:var(--ink-muted); margin-top:4px; display:flex; align-items:center; gap:6px; }
+.add-tip-btn{ width:100%; padding:9px 0; border-radius:10px; border:1px dashed #C9BEB4; background:none; color:var(--ink-soft); font-size:11.5px; cursor:pointer; margin-top:4px; }
+
+.sos-fab{
+  position:fixed; bottom:calc(20px + env(safe-area-inset-bottom)); left:50%; transform:translateX(-50%); width:min(420px,calc(100% - 32px));
+  background:var(--danger); color:#fff; border:none; border-radius:16px; padding:13px 0;
+  font-size:14px; font-weight:600; display:flex; align-items:center; justify-content:center; gap:8px; cursor:pointer;
+  box-shadow:0 8px 20px rgba(212,92,107,0.35); z-index:50;
+}
+.sos-fab svg{ width:17px; height:17px; }
+
+.modal-overlay{ position:fixed; inset:0; background:rgba(44,58,69,0.45); z-index:100; display:none; align-items:flex-end; justify-content:center; padding:0; }
+.modal-overlay.open{ display:flex; }
+.sos-sheet{ background:var(--bg-1); width:100%; max-width:420px; border-radius:20px 20px 0 0; padding:22px 20px 28px; }
+.sos-sheet h3{ font-size:16px; margin-bottom:4px; } .sos-sheet p.sub{ font-size:11px; color:var(--ink-muted); margin-bottom:14px; }
+.sos-row{ display:flex; align-items:center; justify-content:space-between; background:var(--card); border-radius:12px; padding:12px 14px; margin-bottom:8px; }
+.sos-row .left{ display:flex; align-items:center; gap:10px; }
+.sos-row p{ font-size:12.5px; } .sos-row p.num{ font-size:10.5px; color:var(--ink-muted); }
+.call-btn{ background:var(--danger); color:#fff; border:none; border-radius:10px; padding:8px 14px; font-size:11.5px; cursor:pointer; display:flex; align-items:center; gap:5px; }
+.offline-tag{ font-size:9px; color:var(--mint-text); background:var(--mint-bg); padding:3px 8px; border-radius:6px; text-align:center; margin-top:10px; }
+.close-sheet{ width:100%; padding:10px 0; border-radius:10px; border:1px solid #E9E1DA; background:none; color:var(--ink-soft); font-size:12px; cursor:pointer; margin-top:12px; }
+
+.modal-basic{ position:fixed; inset:0; background:rgba(44,58,69,0.4); z-index:110; display:none; align-items:center; justify-content:center; padding:20px; }
+.modal-basic.open{ display:flex; }
+.modal{ background:var(--bg-1); width:100%; max-width:340px; border-radius:16px; padding:20px; }
+.modal h3{ font-size:14px; margin-bottom:12px; }
+.modal input,.modal textarea{ width:100%; padding:9px 10px; border:1px solid #E9E1DA; border-radius:8px; font-size:16px; margin-bottom:8px; font-family:inherit; }
+.modal-actions{ display:flex; gap:8px; margin-top:6px; }
+.modal-actions button{ flex:1; padding:9px 0; border-radius:8px; cursor:pointer; font-size:12px; border:none; }
+.btn-primary{ background:var(--ink); color:#fff; }
+.btn-cancel{ background:none; border:1px solid #E9E1DA !important; color:var(--ink-soft); }
+
+</style>
+</head>
+<body>
+
+
+
+<div class="wrap">
+  <div class="tab-header"><h1>FAQ & Helplines</h1><p>Bali, 4–8 Aug</p></div>
+
+  <div class="panel">
+    <div class="place-tabs" id="placeTabs"></div>
+    <div id="placeContent"></div>
+  </div>
+</div>
+
+<button class="sos-fab" id="sosBtn">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z"/></svg>
+  SOS
+</button>
+
+<div class="modal-overlay" id="sosOverlay">
+  <div class="sos-sheet">
+    <h3>Emergency</h3>
+    <p class="sub">Cached offline · works with zero signal</p>
+    <div class="place-tabs" id="sosCountryTabs" style="margin-bottom:12px;"></div>
+    <div id="sosNumbers"></div>
+    <p class="offline-tag">✓ Available offline</p>
+    <button class="close-sheet" data-close="sosOverlay">Close</button>
+  </div>
+</div>
+
+<div class="modal-basic" id="tipModal">
+  <div class="modal">
+    <h3>Add a tip</h3>
+    <textarea id="tipText" rows="3" placeholder="Something fellow travellers should know..."></textarea>
+    <div class="modal-actions">
+      <button class="btn-cancel" data-close="tipModal">Cancel</button>
+      <button class="btn-primary" id="tipSave">Submit for verification</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const places = {
+  'Ubud': {
+    country: 'Indonesia',
+    safety: { text:'Ubud market area — poorly lit, low footfall after 9pm. Go with a friend.', verified:true },
+    essentials: [
+      { icon:'map', name:'Gojek', sub:'Better than Uber here', link:'https://www.gojek.com' },
+      { icon:'lang', name:'Google Translate', sub:'Works well for Bahasa Indonesia', link:'https://translate.google.com' },
+    ],
+    goodToKnow: [
+      { label:'Tipping', text:'Not customary — rounding up is fine' },
+      { label:'Bargaining', text:'Normal at street markets, not in malls' },
+      { label:'Dress code', text:'Cover shoulders/knees at temples' },
+    ],
+    tips: [
+      { text:'Warung Biah Biah is worth the wait — go before 7pm', by:'a traveller', verified:true },
+    ],
+    emergency: [
+      { label:'Police / Ambulance', num:'112' },
+      { label:'Nearest Indian Embassy — Denpasar', num:'+62 361 285485' },
+    ]
+  },
+  'Seminyak': {
+    country: 'Indonesia',
+    safety: { text:'Beach road after dark — stick to lit main strips, avoid empty stretches of sand at night.', verified:true },
+    essentials: [
+      { icon:'map', name:'Grab', sub:'Widely available, reliable pricing', link:'https://www.grab.com' },
+      { icon:'lang', name:'Google Translate', sub:'Works well for Bahasa Indonesia', link:'https://translate.google.com' },
+    ],
+    goodToKnow: [
+      { label:'Tipping', text:'10% appreciated at sit-down restaurants' },
+      { label:'Sun', text:'Reef-safe sunscreen only — some beach clubs enforce it' },
+    ],
+    tips: [],
+    emergency: [
+      { label:'Police / Ambulance', num:'112' },
+      { label:'Nearest Indian Embassy — Denpasar', num:'+62 361 285485' },
+    ]
+  },
+  'Bangkok': {
+    country: 'Thailand',
+    safety: { text:'Petty theft and overcharging are the real risk, not violent crime — agree on tuk-tuk/taxi fares before getting in, and use the meter or an app instead.', verified:false },
+    essentials: [
+      { icon:'map', name:'Grab', sub:'Dominant ride-hailing app across Thailand — more reliable than street taxis', link:'https://www.grab.com/th/en/' },
+      { icon:'lang', name:'Google Translate', sub:'Camera mode works well for Thai menus/signs', link:'https://translate.google.com' },
+    ],
+    goodToKnow: [
+      { label:'Tipping', text:'Not obligatory — rounding up is fine, 10% at nicer restaurants' },
+      { label:'Dress code', text:'Cover shoulders/knees at temples (sarongs often available to rent at entrances)' },
+      { label:'Alcohol', text:'Daytime sale restrictions exist — check current hours locally' },
+    ],
+    tips: [],
+    emergency: [
+      { label:'Tourist Police (English-speaking)', num:'1155' },
+      { label:'Indian Embassy — emergency (after-hours only)', num:'+66 618819218' },
+    ]
+  },
+  'Singapore': {
+    country: 'Singapore',
+    safety: { text:'One of the lowest-crime cities in the world for a tourist — the real risks are strict local laws (littering, jaywalking, vaping fines) more than personal safety.', verified:false },
+    essentials: [
+      { icon:'map', name:'Grab', sub:'The default ride-hailing app here', link:'https://www.grab.com/sg/' },
+      { icon:'lang', name:'Google Translate', sub:'English is an official language — mainly useful for menus in other scripts', link:'https://translate.google.com' },
+    ],
+    goodToKnow: [
+      { label:'Fines', text:'Strictly enforced — no chewing gum import, no jaywalking, no vaping (illegal, not just restricted)' },
+      { label:'Tipping', text:'Not customary — service charge is usually already included' },
+    ],
+    tips: [],
+    emergency: [
+      { label:'Police', num:'999' },
+      { label:'Ambulance', num:'995' },
+      { label:'Indian High Commission — 24/7', num:'+65 8777 8589' },
+    ]
+  },
+  'Kuala Lumpur': {
+    country: 'Malaysia',
+    safety: { text:'Generally safe for tourists — keep bags zipped and close in crowded markets (Petaling Street, Central Market), where snatch theft is the main reported risk.', verified:false },
+    essentials: [
+      { icon:'map', name:'Grab', sub:'Dominant ride-hailing app in Malaysia', link:'https://www.grab.com/my/' },
+      { icon:'lang', name:'Google Translate', sub:'Works well for Bahasa Malaysia', link:'https://translate.google.com' },
+    ],
+    goodToKnow: [
+      { label:'Tipping', text:'Not expected — rounding up is appreciated' },
+      { label:'Dress code', text:'Cover shoulders/knees at mosques and temples' },
+    ],
+    tips: [],
+    emergency: [
+      { label:'Police / Ambulance', num:'999' },
+      { label:'Indian High Commission — check current number', num:null, checkLink:'https://www.mea.gov.in/images/pdf/emergency-numbers-of-indian-missions-abroad-04-08-2016.pdf' },
+    ]
+  },
+  'Ho Chi Minh City': {
+    country: 'Vietnam',
+    safety: { text:'Bag/phone snatching by motorbike is the most common tourist-targeted crime — keep bags on the building side of the pavement, not the road side.', verified:false },
+    essentials: [
+      { icon:'map', name:'Grab', sub:'Market leader for both car and motorbike rides', link:'https://www.grab.com/vn/en/' },
+      { icon:'lang', name:'Google Translate', sub:'Camera mode is genuinely useful for Vietnamese menus', link:'https://translate.google.com' },
+    ],
+    goodToKnow: [
+      { label:'Crossing roads', text:'Walk slowly and predictably — traffic flows around you, don\'t stop or run' },
+      { label:'Tipping', text:'Not traditional, but increasingly appreciated in tourist-facing spots' },
+    ],
+    tips: [],
+    emergency: [
+      { label:'Police', num:'113' },
+      { label:'Ambulance', num:'115' },
+      { label:'Indian Embassy — check current number', num:null, checkLink:'https://www.mea.gov.in/images/pdf/emergency-numbers-of-indian-missions-abroad-04-08-2016.pdf' },
+    ]
+  },
+  'Dubai': {
+    country: 'United Arab Emirates',
+    safety: { text:'Very low crime — the real thing to know is that UAE law is strict on public behaviour (alcohol only in licensed venues, no public affection, no swearing/rude gestures — including online).', verified:false },
+    essentials: [
+      { icon:'map', name:'Careem', sub:'Dubai-founded, deepest local coverage — includes official RTA taxis via Hala', link:'https://www.careem.com' },
+      { icon:'lang', name:'Uber', sub:'Also widely used, most visitors already have it installed', link:'https://www.uber.com' },
+    ],
+    goodToKnow: [
+      { label:'Ramadan', text:'No eating/drinking in public during daylight hours if visiting during Ramadan' },
+      { label:'Photography', text:'Don\'t photograph government buildings or people without asking' },
+    ],
+    tips: [],
+    emergency: [
+      { label:'Police', num:'999' },
+      { label:'Ambulance', num:'998' },
+      { label:'Pravasi Bharatiya Sahayata Kendra (toll-free in UAE)', num:'800 46342' },
+    ]
+  },
+  'Zurich': {
+    country: 'Switzerland',
+    safety: { text:'Extremely safe by almost any measure — the practical risk is cost, not crime; know your budget before you arrive.', verified:false },
+    essentials: [
+      { icon:'map', name:'SBB Mobile', sub:'The national rail app — Switzerland is built around trains, not ride-hailing', link:'https://www.sbb.ch/en/' },
+      { icon:'lang', name:'Google Translate', sub:'Useful across all 4 official languages (German/French/Italian/Romansh)', link:'https://translate.google.com' },
+    ],
+    goodToKnow: [
+      { label:'Sundays', text:'Most shops close — plan grocery/errands for Saturday' },
+      { label:'Tipping', text:'Service is included by law — rounding up is a nice gesture, not required' },
+    ],
+    tips: [],
+    emergency: [
+      { label:'Police / Ambulance (EU-wide)', num:'112' },
+      { label:'Rega — mountain/air rescue', num:'1414' },
+      { label:'Indian Embassy — check current number', num:null, checkLink:'https://www.mea.gov.in/images/pdf/emergency-numbers-of-indian-missions-abroad-04-08-2016.pdf' },
+    ]
+  },
+  'Tokyo': {
+    country: 'Japan',
+    safety: { text:'One of the safest major cities in the world for tourists — natural disaster preparedness (earthquakes) matters more than personal safety.', verified:false },
+    essentials: [
+      { icon:'map', name:'Google Maps', sub:'Reliably accurate for Japan\'s complex train transfers', link:'https://maps.google.com' },
+      { icon:'lang', name:'Google Translate', sub:'Camera mode for menus/signs is essential', link:'https://translate.google.com' },
+    ],
+    goodToKnow: [
+      { label:'Cash', text:'Still widely needed — many smaller places don\'t take cards' },
+      { label:'Trains', text:'No talking on phones, keep voices low — it\'s a strongly held norm, not just a suggestion' },
+    ],
+    tips: [],
+    emergency: [
+      { label:'Police', num:'110' },
+      { label:'Ambulance / Fire', num:'119' },
+      { label:'Indian Embassy — check current number', num:null, checkLink:'https://www.mea.gov.in/images/pdf/emergency-numbers-of-indian-missions-abroad-04-08-2016.pdf' },
+    ]
+  },
+  'Tbilisi': {
+    country: 'Georgia',
+    safety: { text:'Generally very safe, even at night — the real risk is airport taxi overcharging, not crime. Use an app instead of street taxis.', verified:false },
+    essentials: [
+      { icon:'map', name:'Bolt', sub:'The main ride-hailing app — note that Uber does not operate in Georgia', link:'https://bolt.eu' },
+      { icon:'lang', name:'Google Translate', sub:'Georgian script is unique — camera translation genuinely helps', link:'https://translate.google.com' },
+    ],
+    goodToKnow: [
+      { label:'Tipping', text:'Not customary — rounding up is enough' },
+      { label:'Cash', text:'Lari (GEL) only in smaller towns — carry some outside Tbilisi' },
+    ],
+    tips: [],
+    emergency: [
+      { label:'Police / Ambulance / Fire', num:'112' },
+      { label:'Indian Embassy — check current number', num:null, checkLink:'https://www.mea.gov.in/images/pdf/emergency-numbers-of-indian-missions-abroad-04-08-2016.pdf' },
+    ]
+  }
+};
+
+let activePlace = 'Ubud';
+const placeTabs = document.getElementById('placeTabs');
+const placeContent = document.getElementById('placeContent');
+
+function iconSvg(type){
+  if(type==='map') return '<path d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"/>';
+  return '<path d="M5 8l6 6M4 14l6-6 2-3M2 5h12M7 2h1m11 20l-5-10-5 10m2-4h6"/>';
+}
+
+function renderPlaceTabs(){
+  placeTabs.innerHTML = Object.keys(places).map(p=>
+    '<button class="place-chip '+(p===activePlace?'active':'')+'" data-place="'+p+'">'+p+'</button>'
+  ).join('') + '<button class="place-chip" data-place="__country">'+places[activePlace].country+'</button>';
+  placeTabs.querySelectorAll('[data-place]').forEach(el=>{
+    el.addEventListener('click', ()=>{
+      if(el.dataset.place !== '__country'){ activePlace = el.dataset.place; renderPlaceTabs(); renderContent(); }
+    });
+  });
+}
+
+function renderContent(){
+  const p = places[activePlace];
+  let html = '';
+
+  html += '<div class="safety-note"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 9v4M12 17h.01M10.3 3.9L2.7 17a2 2 0 001.7 3h15.2a2 2 0 001.7-3L13.7 3.9a2 2 0 00-3.4 0z"/></svg>'+
+    '<p>'+p.safety.text+'</p>'+(p.safety.verified?'<span class="verified-tag">Verified ✓</span>':'')+'</div>';
+
+  html += '<p class="section-title">Local essentials — '+p.country+'</p>';
+  html += p.essentials.map(e=>
+    '<div class="essentials-row" data-link="'+e.link+'">'+
+      '<div class="left"><div class="essentials-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">'+iconSvg(e.icon)+'</svg></div>'+
+      '<div><p>'+e.name+'</p><p class="sub">'+e.sub+'</p></div></div>'+
+      '<svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>'+
+    '</div>'
+  ).join('');
+
+  html += '<p class="section-title">Good to know</p>';
+  html += '<div class="info-list">' + p.goodToKnow.map(g=>
+    '<div class="info-row"><b>'+g.label+'</b> — '+g.text+'</div>'
+  ).join('') + '</div>';
+
+  html += '<p class="section-title">Crowdsourced by travellers</p>';
+  html += p.tips.map(t=>
+    '<div class="crowdsourced-card"><p class="quote">"'+t.text+'"</p><p class="meta">Added by '+t.by+' '+(t.verified?'<span class="verified-tag">Verified ✓</span>':'<span class="pending-tag">Pending verification</span>')+'</p></div>'
+  ).join('') || '<p style="font-size:11px;color:var(--ink-muted);text-align:center;padding:8px 0;">No tips yet for this place</p>';
+  html += '<button class="add-tip-btn" id="addTipBtn">+ Add a tip</button>';
+
+  placeContent.innerHTML = html;
+
+  placeContent.querySelectorAll('[data-link]').forEach(el=>{
+    el.addEventListener('click', ()=> window.open(el.dataset.link, '_blank', 'noopener'));
+  });
+  document.getElementById('addTipBtn').addEventListener('click', ()=> openModal('tipModal'));
+}
+
+document.getElementById('tipSave').addEventListener('click', ()=>{
+  const text = document.getElementById('tipText').value.trim();
+  if(!text) return;
+  places[activePlace].tips.push({ text, by:'you', verified:false });
+  document.getElementById('tipText').value = '';
+  closeModal('tipModal');
+  renderContent();
+});
+
+// Trip-wide countries, derived independently of which FAQ place-tab is
+// open — SOS should never depend on incidental tab state. Each entry keeps
+// its own emergency numbers so this scales cleanly to multi-country trips.
+function tripCountries(){
+  const seen = {};
+  Object.values(places).forEach(p=>{
+    if(!seen[p.country]) seen[p.country] = p.emergency;
+  });
+  return seen;
+}
+let sosCountry = null;
+
+document.getElementById('sosBtn').addEventListener('click', ()=>{
+  const countries = tripCountries();
+  if(!sosCountry || !countries[sosCountry]) sosCountry = places[activePlace].country; // sensible default, not a hard dependency
+  renderSosCountryTabs(countries);
+  renderSosNumbers(countries);
+  openModal('sosOverlay');
+});
+
+function renderSosCountryTabs(countries){
+  const names = Object.keys(countries);
+  const tabsEl = document.getElementById('sosCountryTabs');
+  if(names.length <= 1){ tabsEl.innerHTML = ''; return; } // no need for a selector on a single-country trip
+  tabsEl.innerHTML = names.map(c=>
+    '<button class="place-chip '+(c===sosCountry?'active':'')+'" data-sos-country="'+c+'">'+c+'</button>'
+  ).join('');
+  tabsEl.querySelectorAll('[data-sos-country]').forEach(el=>{
+    el.addEventListener('click', ()=>{
+      sosCountry = el.dataset.sosCountry;
+      renderSosCountryTabs(countries);
+      renderSosNumbers(countries);
+    });
+  });
+}
+
+function renderSosNumbers(countries){
+  document.getElementById('sosNumbers').innerHTML = countries[sosCountry].map(e=>{
+    if(e.num){
+      return '<div class="sos-row"><div class="left"><p>'+e.label+'</p></div><button class="call-btn" onclick="window.location.href=\'tel:'+e.num.replace(/\s/g,'')+'\'"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z"/></svg>'+e.num+'</button></div>';
+    }
+    // Honest fallback: we don't have this embassy's number independently
+    // verified for this destination — rather than guess (dangerous for a
+    // safety feature), link to India's official MEA emergency contacts
+    // list instead of showing a number that might be wrong.
+    return '<div class="sos-row"><div class="left"><p>'+e.label+'</p><p style="font-size:9px;color:var(--ink-muted);">Not independently verified yet</p></div><button class="call-btn" style="background:var(--ink-muted);" onclick="window.open(\''+e.checkLink+'\', \'_blank\')">Check number</button></div>';
+  }).join('');
+}
+
+function openModal(id){ document.getElementById(id).classList.add('open'); }
+function closeModal(id){ document.getElementById(id).classList.remove('open'); }
+document.querySelectorAll('[data-close]').forEach(b=> b.addEventListener('click', ()=> closeModal(b.dataset.close)));
+
+renderPlaceTabs();
+renderContent();
+
+</script>
+</body>
+</html>

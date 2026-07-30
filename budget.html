@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Budget</title>
+<style>
+
+:root{
+  --bg-1:       #FBF4F2;
+  --bg-2:       #F1E6EC;
+  --card:       #FFFFFF;
+  --card-tint:  #F6EFEC;
+  --ink:        #2C3A45;
+  --ink-soft:   #5C6B75;
+  --ink-muted:  #8B98A0;
+  --blue:       #6FA9C4;
+  --blue-bg:    #DCEBF2;
+  --blue-text:  #2E6C88;
+  --pink:       #EFAFC2;
+  --pink-bg:    #FBE3EA;
+  --pink-text:  #B2436A;
+  --mint:       #8FC2A9;
+  --mint-bg:    #E5F2EB;
+  --mint-text:  #3B6D48;
+  --danger:     #D45C6B;
+  --danger-bg:  #FBE3E3;
+  --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
+}
+*{ box-sizing:border-box; margin:0; padding:0; }
+body{
+  font-family:var(--font-sans); color:var(--ink);
+  background:linear-gradient(180deg, var(--bg-1), var(--bg-2));
+  min-height:100vh; padding:20px 16px 40px;
+}
+button{ font-family:inherit; }
+.wrap{ max-width:420px; margin:0 auto; }
+
+.tab-header{ margin-bottom:14px; }
+.tab-header h1{ font-size:17px; font-weight:600; }
+.tab-header p{ font-size:11px; color:var(--ink-muted); }
+
+.panel{ background:var(--card-tint); border-radius:20px; padding:14px; margin-bottom:16px; }
+.card{ background:var(--card); border-radius:14px; padding:12px; }
+
+.view-toggle{ display:flex; gap:6px; margin-bottom:12px; background:var(--card); border-radius:12px; padding:4px; }
+.view-toggle button{ flex:1; padding:8px 0; border-radius:9px; border:none; background:none; font-size:11.5px; font-weight:500; color:var(--ink-soft); cursor:pointer; }
+.view-toggle button.active{ background:var(--ink); color:#fff; }
+
+.budget-grid{ display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:12px; }
+.budget-card p:first-child{ font-size:10.5px; color:var(--ink-muted); margin-bottom:3px; }
+.budget-card p:last-child{ font-size:18px; font-weight:600; }
+.budget-card.over p:last-child{ color:var(--danger); }
+.edit-budget-link{ font-size:9.5px; color:var(--blue-text); cursor:pointer; margin-top:4px; display:block; }
+
+.expense-list{ display:flex; flex-direction:column; gap:8px; }
+.expense-row{ display:flex; align-items:center; justify-content:space-between; background:var(--card); border-radius:12px; padding:10px 12px; }
+.expense-name{ font-size:12.5px; }
+.expense-meta{ display:flex; align-items:center; gap:6px; margin-top:3px; }
+.expense-badge{ font-size:9px; padding:2px 7px; border-radius:6px; }
+.badge-pooled{ background:var(--blue-bg); color:var(--blue-text); }
+.badge-owed{ background:var(--pink-bg); color:var(--pink-text); }
+.badge-custom{ background:var(--mint-bg); color:var(--mint-text); }
+.expense-paidby{ font-size:9.5px; color:var(--ink-muted); }
+.expense-amounts{ text-align:right; }
+.expense-original{ font-size:12px; }
+.expense-converted{ font-size:9.5px; color:var(--ink-muted); }
+
+.ledger-row{ display:flex; justify-content:space-between; align-items:center; background:var(--card); border-radius:12px; padding:10px 12px; margin-bottom:8px; }
+.ledger-row p{ font-size:12px; }
+.ledger-amount{ font-size:13px; font-weight:600; }
+.ledger-amount.owe{ color:var(--danger); }
+.ledger-amount.owed{ color:var(--mint-text); }
+.ledger-empty{ font-size:11.5px; color:var(--ink-muted); text-align:center; padding:20px 0; }
+.ledger-note{ font-size:10px; color:var(--ink-muted); text-align:center; margin-top:6px; }
+
+.log-btn{ width:100%; padding:11px 0; border-radius:14px; border:none; background:var(--ink); color:#fff; font-size:13px; font-weight:500; cursor:pointer; margin-top:14px; }
+
+.converter-toggle{ font-size:11px; color:var(--blue-text); text-align:center; margin-top:10px; cursor:pointer; }
+.converter-box{ display:none; margin-top:10px; background:var(--card); border-radius:12px; padding:12px; }
+.converter-box.open{ display:block; }
+.converter-row{ display:flex; align-items:center; gap:8px; }
+.converter-row input{ flex:1; padding:9px 10px; border:1px solid #E9E1DA; border-radius:8px; font-size:16px; }
+.converter-row select{ padding:9px 8px; border:1px solid #E9E1DA; border-radius:8px; font-size:16px; }
+.converter-result{ font-size:12px; color:var(--ink-soft); margin-top:8px; text-align:center; }
+.rate-note{ font-size:9px; color:var(--ink-muted); text-align:center; margin-top:6px; }
+
+.modal-overlay{ position:fixed; inset:0; background:rgba(44,58,69,0.4); z-index:100; display:none; align-items:center; justify-content:center; padding:20px; }
+.modal-overlay.open{ display:flex; }
+.modal{ background:var(--bg-1); width:100%; max-width:340px; border-radius:16px; padding:20px; max-height:85vh; overflow-y:auto; }
+.modal h3{ font-size:14px; margin-bottom:12px; }
+.modal input, .modal select{ width:100%; padding:9px 10px; border:1px solid #E9E1DA; border-radius:8px; font-size:16px; margin-bottom:8px; font-family:inherit; }
+.modal label{ font-size:10.5px; color:var(--ink-soft); display:block; margin-bottom:6px; }
+.amount-row{ display:flex; gap:8px; }
+.amount-row input{ flex:1.4; }
+.amount-row select{ flex:1; }
+.auto-note{ font-size:9.5px; color:var(--ink-muted); margin:-4px 0 10px; }
+.split-tabs{ display:flex; gap:6px; margin-bottom:10px; }
+.split-tabs button{ flex:1; font-size:10.5px; padding:8px 0; border-radius:8px; border:1px solid #E9E1DA; background:var(--card); color:var(--ink-soft); cursor:pointer; }
+.split-tabs button.active{ background:var(--blue); color:#fff; border-color:var(--blue); }
+.participant-picker{ display:flex; flex-wrap:wrap; gap:6px; margin-bottom:10px; }
+.participant-chip{ padding:6px 11px; border-radius:9px; border:1px solid #E9E1DA; background:var(--card); font-size:11px; cursor:pointer; color:var(--ink-soft); }
+.participant-chip.selected{ background:var(--blue); color:#fff; border-color:var(--blue); }
+.custom-split-row{ display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; }
+.custom-split-row span{ font-size:11px; }
+.custom-split-row input{ width:80px; margin:0; }
+.custom-split-total{ font-size:10.5px; text-align:right; margin-bottom:8px; }
+.custom-split-total.mismatch{ color:var(--danger); }
+.modal-actions{ display:flex; gap:8px; margin-top:6px; }
+.modal-actions button{ flex:1; padding:10px 0; border-radius:8px; cursor:pointer; font-size:12px; border:none; }
+.btn-primary{ background:var(--ink); color:#fff; }
+.btn-cancel{ background:none; border:1px solid #E9E1DA !important; color:var(--ink-soft); }
+
+
+</style>
+</head>
+<body>
+
+
+
+<div class="wrap">
+  <div class="tab-header">
+    <h1>Budget</h1>
+    <p>Bali, 4–8 Aug</p>
+  </div>
+
+  <div class="panel">
+    <div class="view-toggle">
+      <button class="active" data-view="tracker">Remaining</button>
+      <button data-view="ledger">Who owes whom</button>
+    </div>
+
+    <div id="trackerView">
+      <p id="rateStatusNote" style="font-size:9.5px;color:var(--ink-muted);text-align:center;margin-bottom:10px;">Loading today's rates…</p>
+      <div class="budget-grid">
+        <div class="card budget-card" id="groupCard">
+          <p>Group left</p><p id="groupRemaining">—</p>
+          <span class="edit-budget-link" data-edit-budget="group">edit total</span>
+        </div>
+        <div class="card budget-card" id="personalCard">
+          <p>Your left</p><p id="personalRemaining">—</p>
+          <span class="edit-budget-link" data-edit-budget="personal">edit total</span>
+        </div>
+      </div>
+      <div class="expense-list" id="expenseList"></div>
+
+      <div class="converter-toggle" id="converterToggle">Need a quick currency converter? ▾</div>
+      <div class="converter-box" id="converterBox">
+        <div class="converter-row">
+          <input type="number" id="convAmount" placeholder="Amount" value="100">
+          <select id="convFrom"></select>
+          <span>→</span>
+          <select id="convTo"></select>
+        </div>
+        <p class="converter-result" id="convResult"></p>
+        <p class="rate-note">Frankfurter API (ECB daily reference rates) — free, no key required</p>
+      </div>
+    </div>
+
+    <div id="ledgerView" style="display:none;">
+      <div id="ledgerList"></div>
+      <p class="ledger-note">Simplified to the fewest transactions needed</p>
+    </div>
+
+    <button class="log-btn" id="logExpenseBtn">+ Log an expense</button>
+  </div>
+</div>
+
+<div class="modal-overlay" id="expenseModal">
+  <div class="modal">
+    <h3>New expense</h3>
+    <input type="text" id="expDesc" placeholder="What was it for?">
+    <div class="amount-row">
+      <input type="number" id="expAmount" placeholder="Amount">
+      <select id="expCurrency"></select>
+    </div>
+    <p class="auto-note" id="currencyAutoNote"></p>
+
+    <div id="paidByBlock">
+      <label>Paid by</label>
+      <select id="expPaidBy"></select>
+    </div>
+
+    <div id="splitSection">
+    <label>Split</label>
+    <div class="split-tabs">
+      <button class="active" data-split="pooled">Pooled</button>
+      <button data-split="owed">Owed-back</button>
+      <button data-split="custom">Custom split</button>
+    </div>
+
+    <div id="participantsBlock">
+      <label>Who's in on this</label>
+      <div class="participant-picker" id="participantPicker"></div>
+    </div>
+
+    <div id="customSplitBlock" style="display:none;">
+      <label>Set each person's share</label>
+      <div id="customSplitRows"></div>
+      <p class="custom-split-total" id="customSplitTotal"></p>
+    </div>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn-cancel" data-close="expenseModal">Cancel</button>
+      <button class="btn-primary" id="expenseSave">Save expense</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="budgetEditModal">
+  <div class="modal">
+    <h3 id="budgetEditTitle">Set budget</h3>
+    <input type="number" id="budgetEditAmount" placeholder="Amount in ₹">
+    <div class="modal-actions">
+      <button class="btn-cancel" data-close="budgetEditModal">Cancel</button>
+      <button class="btn-primary" id="budgetEditSave">Save</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const groupMembers = ['You','Ria','Sam','Arjun'];
+const currentUser = 'You';
+const tripType = new URLSearchParams(window.location.search).get('tripType') || window.__PRESET_TRIP_TYPE || 'group';
+const isSolo = tripType === 'solo';
+
+// Live daily rates for ALL currencies Frankfurter supports (not a curated
+// subset) — real coverage for real users, not a demo-scoped list.
+let rates = null; // null until either the live fetch or the fallback resolves — nothing renders with broken/missing rates
+let currencyNames = {};
+let ratesDate = null;
+let ratesLoaded = false;
+
+// Used only if the live fetch genuinely fails (e.g. no connection) — keeps
+// the app usable offline with the currencies this trip actually needs,
+// consistent with the app's offline-first principle.
+const fallbackRates = { INR:1, IDR:0.0056, THB:2.55, USD:83.2 };
+const fallbackNames = { INR:'Indian Rupee', IDR:'Indonesian Rupiah', THB:'Thai Baht', USD:'US Dollar' };
+
+// Symbols for common currencies, purely cosmetic — any currency without an
+// entry here still works fully, it just displays its 3-letter code instead.
+const currencySymbols = {
+  INR:'₹', USD:'$', EUR:'€', GBP:'£', JPY:'¥', IDR:'Rp', THB:'฿', SGD:'S$',
+  MYR:'RM', PHP:'₱', KRW:'₩', CNY:'¥', AUD:'A$', CAD:'C$', CHF:'Fr', HKD:'HK$',
+  NZD:'NZ$', TRY:'₺', ZAR:'R', MXN:'$', BRL:'R$'
+};
+function symbolFor(code){ return currencySymbols[code] || code + ' '; }
+
+async function loadLiveRates(){
+  try{
+    const [namesRes, ratesRes] = await Promise.all([
+      fetch('https://api.frankfurter.dev/v1/currencies'),
+      fetch('https://api.frankfurter.dev/v1/latest?base=INR')
+    ]);
+    const names = await namesRes.json();
+    const ratesData = await ratesRes.json();
+
+    currencyNames = { INR:'Indian Rupee', ...names };
+    rates = { INR: 1 };
+    Object.entries(ratesData.rates).forEach(([code, rateFromINR])=>{
+      rates[code] = 1 / rateFromINR;
+    });
+    ratesDate = ratesData.date;
+    ratesLoaded = true;
+  } catch(err){
+    // genuinely offline or the API is unreachable — degrade to a small
+    // known-good set rather than showing broken numbers
+    rates = { ...fallbackRates };
+    currencyNames = { ...fallbackNames };
+    ratesDate = null;
+    ratesLoaded = true;
+  }
+
+  document.getElementById('rateStatusNote').textContent = ratesDate
+    ? 'Live rates as of ' + ratesDate + ' · ' + Object.keys(rates).length + ' currencies (ECB daily reference)'
+    : 'Offline — showing ' + Object.keys(rates).length + ' common currencies with cached rates';
+
+  populateAllCurrencySelects();
+  renderTracker();
+  if(document.getElementById('converterBox').classList.contains('open')) updateConverter();
+}
+
+function populateAllCurrencySelects(){
+  const codes = Object.keys(rates).sort();
+  const optionsHtml = codes.map(c =>
+    '<option value="'+c+'">'+c+' — '+(currencyNames[c]||c)+'</option>'
+  ).join('');
+  ['expCurrency','convFrom','convTo'].forEach(id=>{
+    const sel = document.getElementById(id);
+    const prevValue = sel.value;
+    sel.innerHTML = optionsHtml;
+    if(codes.includes(prevValue)) sel.value = prevValue;
+  });
+  if(!document.getElementById('convFrom').value) document.getElementById('convFrom').value = 'IDR' in rates ? 'IDR' : codes[0];
+  if(!document.getElementById('convTo').value) document.getElementById('convTo').value = 'INR';
+}
+
+const todaysCurrency = 'IDR';
+
+let groupBudgetTotal = 100000;
+let personalBudgetTotal = 15000;
+
+let expenses = isSolo
+  ? [
+      { desc:'Scooter rental', amount:400, currency:'THB', paidBy:'You', split:'personal', participants:['You'] },
+      { desc:'Dinner at Locavore', amount:2800, currency:'INR', paidBy:'You', split:'personal', participants:['You'] },
+    ]
+  : [
+      { desc:'Scooter rental', amount:400, currency:'THB', paidBy:'Sam', split:'pooled', participants:[...groupMembers] },
+      { desc:'Dinner at Locavore', amount:2800, currency:'INR', paidBy:'Ria', split:'owed', participants:[...groupMembers] },
+      { desc:'Villa deposit', amount:1500000, currency:'IDR', paidBy:'You', split:'pooled', participants:[...groupMembers] },
+    ];
+
+function toINR(amount, currency){ return rates && rates[currency] ? amount * rates[currency] : 0; }
+function fmtINR(n){ return '₹' + Math.round(n).toLocaleString('en-IN'); }
+
+document.querySelectorAll('.view-toggle button').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('.view-toggle button').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    const isTracker = btn.dataset.view === 'tracker';
+    document.getElementById('trackerView').style.display = isTracker ? 'block' : 'none';
+    document.getElementById('ledgerView').style.display = isTracker ? 'none' : 'block';
+    if(!isTracker) renderLedger();
+  });
+});
+
+function renderTracker(){
+  if(!rates){
+    document.getElementById('groupRemaining').textContent = '…';
+    document.getElementById('personalRemaining').textContent = '…';
+    document.getElementById('expenseList').innerHTML = '<p style="font-size:11.5px;color:var(--ink-muted);text-align:center;padding:16px 0;">Loading rates…</p>';
+    return;
+  }
+  const groupSpent = expenses.filter(e=>e.split==='pooled').reduce((s,e)=> s + toINR(e.amount, e.currency), 0);
+  const groupRemaining = groupBudgetTotal - groupSpent;
+
+  const personalSpent = isSolo
+    ? expenses.reduce((s,e)=> s + toINR(e.amount, e.currency), 0)
+    : expenses
+        .filter(e=> e.split!=='pooled' && e.participants.includes(currentUser))
+        .reduce((s,e)=>{
+          const totalINR = toINR(e.amount, e.currency);
+          if(e.split==='owed') return s + totalINR / e.participants.length;
+          if(e.split==='custom') return s + toINR(e.customShares[currentUser]||0, e.currency);
+          return s;
+        }, 0);
+  const personalRemaining = personalBudgetTotal - personalSpent;
+
+  document.getElementById('groupRemaining').textContent = fmtINR(groupRemaining);
+  document.getElementById('personalRemaining').textContent = fmtINR(personalRemaining);
+  document.getElementById('groupCard').classList.toggle('over', groupRemaining < 0);
+  document.getElementById('personalCard').classList.toggle('over', personalRemaining < 0);
+
+  const list = document.getElementById('expenseList');
+  if(expenses.length === 0){
+    list.innerHTML = '<p style="font-size:11.5px;color:var(--ink-muted);text-align:center;padding:16px 0;">No expenses logged yet</p>';
+    return;
+  }
+  list.innerHTML = [...expenses].reverse().map(e=>{
+    const badgeCls = e.split==='pooled' ? 'badge-pooled' : e.split==='owed' ? 'badge-owed' : 'badge-custom';
+    const badgeLabel = e.split==='pooled' ? 'Pooled' : e.split==='owed' ? 'Owed-back' : 'Custom';
+    const badgeHtml = isSolo ? '' : '<span class="expense-badge '+badgeCls+'">'+badgeLabel+'</span>';
+    return '<div class="expense-row">'+
+      '<div><div class="expense-name">'+e.desc+'</div><div class="expense-meta">'+badgeHtml+(isSolo?'':'<span class="expense-paidby">paid by '+e.paidBy+'</span>')+'</div></div>'+
+      '<div class="expense-amounts"><div class="expense-original">'+symbolFor(e.currency)+e.amount.toLocaleString()+'</div><div class="expense-converted">≈ '+fmtINR(toINR(e.amount,e.currency))+'</div></div>'+
+    '</div>';
+  }).join('');
+}
+
+function computeBalances(){
+  const balances = {}; groupMembers.forEach(m=> balances[m]=0);
+  expenses.forEach(e=>{
+    if(e.split==='pooled') return;
+    const totalINR = toINR(e.amount, e.currency);
+    balances[e.paidBy] += totalINR;
+    if(e.split==='owed'){
+      const share = totalINR / e.participants.length;
+      e.participants.forEach(p=> balances[p] -= share);
+    } else if(e.split==='custom'){
+      e.participants.forEach(p=>{
+        const shareINR = toINR(e.customShares[p]||0, e.currency);
+        balances[p] -= shareINR;
+      });
+    }
+  });
+  return balances;
+}
+
+function simplifyDebts(balances){
+  const creditors = [], debtors = [];
+  Object.entries(balances).forEach(([name,bal])=>{
+    if(bal > 0.5) creditors.push({name, amt:bal});
+    if(bal < -0.5) debtors.push({name, amt:-bal});
+  });
+  creditors.sort((a,b)=>b.amt-a.amt);
+  debtors.sort((a,b)=>b.amt-a.amt);
+  const transactions = [];
+  let ci=0, di=0;
+  while(ci<creditors.length && di<debtors.length){
+    const pay = Math.min(creditors[ci].amt, debtors[di].amt);
+    transactions.push({ from:debtors[di].name, to:creditors[ci].name, amount:pay });
+    creditors[ci].amt -= pay; debtors[di].amt -= pay;
+    if(creditors[ci].amt < 0.5) ci++;
+    if(debtors[di].amt < 0.5) di++;
+  }
+  return transactions;
+}
+
+function renderLedger(){
+  const balances = computeBalances();
+  const transactions = simplifyDebts(balances);
+  const list = document.getElementById('ledgerList');
+  if(transactions.length===0){
+    list.innerHTML = '<p class="ledger-empty">Everyone\'s settled up ✓</p>';
+    return;
+  }
+  list.innerHTML = transactions.map(t=>{
+    const label = t.from===currentUser ? 'You owe '+t.to
+      : t.to===currentUser ? t.from+' owes you'
+      : t.from+' owes '+t.to;
+    const cls = t.from===currentUser ? 'owe' : (t.to===currentUser ? 'owed' : '');
+    return '<div class="ledger-row"><p>'+label+'</p><p class="ledger-amount '+cls+'">'+fmtINR(t.amount)+'</p></div>';
+  }).join('');
+}
+
+const expCurrencySelect = document.getElementById('expCurrency');
+const expPaidBySelect = document.getElementById('expPaidBy');
+groupMembers.forEach(m=>{
+  const opt = document.createElement('option'); opt.value=m; opt.textContent=m;
+  expPaidBySelect.appendChild(opt);
+});
+
+let currentSplit = 'pooled';
+document.querySelectorAll('.split-tabs button').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('.split-tabs button').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    currentSplit = btn.dataset.split;
+    document.getElementById('customSplitBlock').style.display = currentSplit==='custom' ? 'block' : 'none';
+    if(currentSplit==='custom') renderCustomSplitRows();
+  });
+});
+
+function renderParticipantPicker(){
+  const picker = document.getElementById('participantPicker');
+  picker.innerHTML = groupMembers.map(m=>
+    '<button type="button" class="participant-chip selected" data-member="'+m+'">'+m+'</button>'
+  ).join('');
+  picker.querySelectorAll('.participant-chip').forEach(chip=>{
+    chip.addEventListener('click', ()=>{
+      chip.classList.toggle('selected');
+      if(currentSplit==='custom') renderCustomSplitRows();
+    });
+  });
+}
+
+function selectedParticipants(){
+  return [...document.querySelectorAll('.participant-chip.selected')].map(c=>c.dataset.member);
+}
+
+function renderCustomSplitRows(){
+  const container = document.getElementById('customSplitRows');
+  const participants = selectedParticipants();
+  const total = parseFloat(document.getElementById('expAmount').value) || 0;
+  const even = participants.length ? (total/participants.length).toFixed(2) : 0;
+  container.innerHTML = participants.map(p=>
+    '<div class="custom-split-row"><span>'+p+'</span><input type="number" class="custom-share-input" data-member="'+p+'" value="'+even+'"></div>'
+  ).join('');
+  container.querySelectorAll('.custom-share-input').forEach(inp=> inp.addEventListener('input', updateCustomSplitTotal));
+  updateCustomSplitTotal();
+}
+
+function updateCustomSplitTotal(){
+  const inputs = [...document.querySelectorAll('.custom-share-input')];
+  const sum = inputs.reduce((s,i)=> s + (parseFloat(i.value)||0), 0);
+  const total = parseFloat(document.getElementById('expAmount').value) || 0;
+  const el = document.getElementById('customSplitTotal');
+  const diff = Math.abs(sum - total);
+  el.textContent = 'Split total: '+sum.toFixed(2)+' of '+total.toFixed(2);
+  el.classList.toggle('mismatch', diff > 0.5);
+}
+
+document.getElementById('expAmount').addEventListener('input', ()=>{
+  updateCurrencyAutoNote();
+  if(currentSplit==='custom') renderCustomSplitRows();
+});
+function updateCurrencyAutoNote(){
+  document.getElementById('currencyAutoNote').textContent =
+    "Auto-set to today's leg (Indonesia) — override anytime";
+}
+
+document.getElementById('logExpenseBtn').addEventListener('click', ()=>{
+  document.getElementById('expDesc').value = '';
+  document.getElementById('expAmount').value = '';
+  expCurrencySelect.value = todaysCurrency;
+  updateCurrencyAutoNote();
+  if(isSolo){
+    openModal('expenseModal');
+    return;
+  }
+  expPaidBySelect.value = currentUser;
+  currentSplit = 'pooled';
+  document.querySelectorAll('.split-tabs button').forEach(b=> b.classList.toggle('active', b.dataset.split==='pooled'));
+  document.getElementById('customSplitBlock').style.display = 'none';
+  renderParticipantPicker();
+  openModal('expenseModal');
+});
+
+document.getElementById('expenseSave').addEventListener('click', ()=>{
+  const desc = document.getElementById('expDesc').value.trim();
+  const amount = parseFloat(document.getElementById('expAmount').value);
+  const currency = expCurrencySelect.value;
+  if(!desc || !amount) return;
+
+  if(isSolo){
+    expenses.push({ desc, amount, currency, paidBy:'You', split:'personal', participants:['You'] });
+    closeModal('expenseModal');
+    renderTracker();
+    return;
+  }
+
+  const paidBy = expPaidBySelect.value;
+  const participants = selectedParticipants();
+  if(participants.length===0) return;
+
+  const entry = { desc, amount, currency, paidBy, split:currentSplit, participants };
+  if(currentSplit==='custom'){
+    const shares = {};
+    document.querySelectorAll('.custom-share-input').forEach(inp=> shares[inp.dataset.member] = parseFloat(inp.value)||0);
+    entry.customShares = shares;
+  }
+  expenses.push(entry);
+  closeModal('expenseModal');
+  renderTracker();
+});
+
+let editingBudgetType = null;
+document.querySelectorAll('[data-edit-budget]').forEach(el=>{
+  el.addEventListener('click', ()=>{
+    editingBudgetType = el.dataset.editBudget;
+    document.getElementById('budgetEditTitle').textContent = editingBudgetType==='group' ? 'Set group budget' : 'Set your personal budget';
+    document.getElementById('budgetEditAmount').value = editingBudgetType==='group' ? groupBudgetTotal : personalBudgetTotal;
+    openModal('budgetEditModal');
+  });
+});
+document.getElementById('budgetEditSave').addEventListener('click', ()=>{
+  const val = parseFloat(document.getElementById('budgetEditAmount').value);
+  if(!val) return;
+  if(editingBudgetType==='group') groupBudgetTotal = val; else personalBudgetTotal = val;
+  closeModal('budgetEditModal');
+  renderTracker();
+});
+
+function updateConverter(){
+  const amt = parseFloat(document.getElementById('convAmount').value) || 0;
+  const from = document.getElementById('convFrom').value;
+  const to = document.getElementById('convTo').value;
+  if(!rates[from] || !rates[to]) return;
+  const inINR = toINR(amt, from);
+  const result = inINR / rates[to];
+  document.getElementById('convResult').textContent =
+    symbolFor(from)+amt.toLocaleString()+' = '+symbolFor(to)+result.toFixed(2);
+}
+['convAmount','convFrom','convTo'].forEach(id=> document.getElementById(id).addEventListener('input', updateConverter));
+document.getElementById('converterToggle').addEventListener('click', ()=>{
+  const box = document.getElementById('converterBox');
+  box.classList.toggle('open');
+  if(box.classList.contains('open')) updateConverter();
+});
+
+function openModal(id){ document.getElementById(id).classList.add('open'); }
+function closeModal(id){ document.getElementById(id).classList.remove('open'); }
+document.querySelectorAll('[data-close]').forEach(b=> b.addEventListener('click', ()=> closeModal(b.dataset.close)));
+
+renderTracker(); // shows a clean loading state, no NaN/broken numbers
+loadLiveRates(); // fetches full currency list + rates, then re-renders properly
+
+if(isSolo){
+  // No group, so no ledger to settle and nothing to split — hide anything
+  // that only makes sense with more than one traveller in the mix.
+  document.querySelector('.view-toggle').style.display = 'none';
+  document.getElementById('groupCard').style.display = 'none';
+  document.getElementById('personalCard').style.display = 'block';
+  document.querySelector('.budget-grid').style.gridTemplateColumns = '1fr';
+  document.querySelector('#personalCard p:first-child').textContent = 'Your left';
+  document.getElementById('paidByBlock').style.display = 'none';
+  document.getElementById('splitSection').style.display = 'none';
+}
+
+</script>
+</body>
+</html>

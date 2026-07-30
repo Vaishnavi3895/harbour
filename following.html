@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Following</title>
+<style>
+:root{
+  --bg-1:#FBF4F2; --bg-2:#F1E6EC; --card:#FFFFFF; --card-tint:#F6EFEC;
+  --ink:#2C3A45; --ink-soft:#5C6B75; --ink-muted:#8B98A0;
+  --blue:#6FA9C4; --blue-bg:#DCEBF2; --blue-text:#2E6C88;
+  --pink:#EFAFC2; --pink-text:#B2436A;
+  --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
+}
+*{ box-sizing:border-box; margin:0; padding:0; }
+body{ font-family:var(--font-sans); color:var(--ink); background:linear-gradient(180deg,var(--bg-1),var(--bg-2)); min-height:100vh; padding:20px 16px 40px; }
+button{ font-family:inherit; }
+.wrap{ max-width:420px; margin:0 auto; }
+.tab-header{ margin-bottom:14px; } .tab-header h1{ font-size:17px; font-weight:600; }
+
+.view-toggle{ display:flex; gap:6px; margin-bottom:14px; background:var(--card-tint); border-radius:12px; padding:4px; }
+.view-toggle button{ flex:1; padding:8px 0; border-radius:9px; border:none; background:none; font-size:12px; font-weight:500; color:var(--ink-soft); cursor:pointer; }
+.view-toggle button.active{ background:var(--ink); color:#fff; }
+
+.itin-card{ background:var(--card); border-radius:16px; padding:12px; margin-bottom:12px; cursor:pointer; }
+.itin-top{ display:flex; align-items:center; gap:10px; margin-bottom:10px; }
+.itin-avatar{ width:32px; height:32px; border-radius:50%; background:var(--blue-bg); color:var(--blue-text); display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:600; flex:0 0 32px; }
+.itin-by{ font-size:11.5px; font-weight:500; } .itin-by span{ font-weight:400; color:var(--ink-muted); }
+.itin-scene{ width:100%; aspect-ratio:16/9; border-radius:12px; overflow:hidden; margin-bottom:10px; }
+.itin-scene svg{ width:100%; height:100%; display:block; }
+.itin-title{ font-size:13.5px; font-weight:600; } .itin-sub{ font-size:11px; color:var(--ink-muted); margin-top:2px; }
+.itin-bottom{ display:flex; justify-content:space-between; align-items:center; margin-top:10px; }
+.itin-daycount{ font-size:10.5px; color:var(--ink-muted); }
+.bookmark-btn{ display:flex; align-items:center; gap:5px; background:none; border:none; cursor:pointer; color:var(--ink-muted); font-size:11px; }
+.bookmark-btn svg{ width:16px; height:16px; }
+.bookmark-btn.saved{ color:var(--pink-text); }
+.privacy-note{ font-size:9.5px; color:var(--ink-muted); text-align:center; margin:2px 0 16px; }
+
+.empty-state{ text-align:center; padding:40px 20px; }
+.empty-state svg{ width:34px; height:34px; color:var(--ink-muted); margin-bottom:10px; }
+.empty-state p{ font-size:12px; color:var(--ink-soft); }
+
+/* ---- detail view ---- */
+.modal-overlay{ position:fixed; inset:0; background:rgba(44,58,69,0.4); z-index:100; display:none; align-items:flex-end; justify-content:center; }
+.modal-overlay.open{ display:flex; }
+.detail-sheet{ background:var(--bg-1); width:100%; max-width:420px; max-height:85vh; overflow-y:auto; border-radius:20px 20px 0 0; padding:20px; }
+.detail-header{ display:flex; align-items:center; gap:10px; margin-bottom:14px; }
+.detail-close{ margin-left:auto; background:none; border:none; cursor:pointer; color:var(--ink-muted); }
+.day-block{ margin-bottom:14px; }
+.day-label{ font-size:11px; font-weight:600; color:var(--ink-soft); margin-bottom:6px; }
+.place-row{ background:var(--card); border-radius:10px; padding:9px 12px; margin-bottom:6px; font-size:12px; }
+.detail-bookmark{ width:100%; padding:11px 0; border-radius:12px; border:none; background:var(--ink); color:#fff; font-size:13px; font-weight:500; cursor:pointer; margin-top:8px; display:flex; align-items:center; justify-content:center; gap:6px; }
+.detail-bookmark.saved{ background:var(--pink-text); }
+
+.gallery-section{ margin-top:16px; }
+.gallery-scroll{ display:flex; gap:8px; overflow-x:auto; padding-bottom:4px; }
+.gallery-item{ flex:0 0 110px; }
+.gallery-item .scene-box{ width:100%; aspect-ratio:1; border-radius:10px; overflow:hidden; }
+.gallery-item .scene-box svg{ width:100%; height:100%; display:block; }
+.gallery-caption{ font-size:9.5px; color:var(--ink-soft); margin-top:4px; text-align:center; }
+.discretion-note{ font-size:9.5px; color:var(--ink-muted); background:var(--card); border-radius:8px; padding:8px 10px; margin-top:10px; display:flex; gap:6px; align-items:flex-start; }
+.discretion-note svg{ width:12px; height:12px; flex:0 0 auto; margin-top:1px; }
+
+</style>
+</head>
+<body>
+
+
+
+<div class="wrap">
+  <div class="tab-header"><h1>Following</h1></div>
+
+  <div class="view-toggle">
+    <button class="active" data-view="following">Following</button>
+    <button data-view="saved">Saved</button>
+  </div>
+  <p class="privacy-note">Only the itinerary is shared — never who else was on the trip</p>
+
+  <div id="feedList"></div>
+</div>
+
+<div class="modal-overlay" id="detailOverlay">
+  <div class="detail-sheet">
+    <div class="detail-header">
+      <div class="itin-avatar" id="detailAvatar"></div>
+      <div><p class="itin-by" id="detailBy"></p><p class="itin-sub" id="detailTitle"></p></div>
+      <button class="detail-close" id="detailClose"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
+    </div>
+    <div id="detailDays"></div>
+    <button class="detail-bookmark" id="detailBookmarkBtn"></button>
+  </div>
+</div>
+
+<script>
+// Seed data standing in for real followed users — note what's deliberately
+// absent: no attendee names, no companion info, only places and days.
+let itineraries = [
+  {
+    id: 1, sharedBy: 'Meera K.', destination: 'Kyoto, Japan', dayCount: 5, bookmarked: false,
+    scene: `<svg viewBox="0 0 300 170"><rect width="300" height="170" fill="#F0DCC0"/><rect x="100" y="90" width="100" height="60" fill="#B5453B"/><polygon points="80,90 150,55 220,90" fill="#5C4A3A"/><path d="M0 140 Q80 120 150 140 T300 135 V170 H0 Z" fill="#7A9E6E"/></svg>`,
+    days: [
+      { day:'Day 1', places:['Fushimi Inari shrine', 'Nishiki Market'] },
+      { day:'Day 2', places:['Arashiyama bamboo grove', 'Tenryu-ji temple'] },
+      { day:'Day 3', places:['Kinkaku-ji (Golden Pavilion)', 'Ryoan-ji rock garden'] },
+    ],
+    gallery: [
+      { caption:'Fushimi Inari shrine', scene:`<svg viewBox="0 0 100 100"><rect width="100" height="100" fill="#F0DCC0"/><rect x="30" y="20" width="40" height="60" fill="#B5453B"/><rect x="35" y="20" width="30" height="10" fill="#5C4A3A"/></svg>` },
+      { caption:'Arashiyama bamboo grove', scene:`<svg viewBox="0 0 100 100"><rect width="100" height="100" fill="#E8DDC7"/><rect x="20" y="10" width="6" height="90" fill="#7A9E6E"/><rect x="40" y="10" width="6" height="90" fill="#6B8F5F"/><rect x="60" y="10" width="6" height="90" fill="#7A9E6E"/><rect x="80" y="10" width="6" height="90" fill="#6B8F5F"/></svg>` },
+      { caption:'Kinkaku-ji', scene:`<svg viewBox="0 0 100 100"><rect width="100" height="100" fill="#DCEBF2"/><rect x="25" y="45" width="50" height="35" fill="#F0C77A"/><polygon points="20,45 50,25 80,45" fill="#5C4A3A"/><rect x="0" y="75" width="100" height="25" fill="#6E93A8"/></svg>` },
+    ]
+  },
+  {
+    id: 2, sharedBy: 'Arjun D.', destination: 'Lisbon, Portugal', dayCount: 4, bookmarked: false,
+    scene: `<svg viewBox="0 0 300 170"><rect width="300" height="170" fill="#F6E6D5"/><rect x="40" y="70" width="30" height="80" fill="#E8B4A0"/><rect x="80" y="50" width="30" height="100" fill="#D99A85"/><rect x="120" y="80" width="30" height="70" fill="#E8B4A0"/><path d="M0 150 Q100 130 200 150 T300 145 V170 H0 Z" fill="#6E93A8"/></svg>`,
+    days: [
+      { day:'Day 1', places:['Alfama district walk', 'Miradouro das Portas do Sol'] },
+      { day:'Day 2', places:['Belém Tower', 'Jerónimos Monastery', 'Pastéis de Belém'] },
+    ],
+    gallery: [
+      { caption:'Alfama district', scene:`<svg viewBox="0 0 100 100"><rect width="100" height="100" fill="#F6E6D5"/><rect x="15" y="30" width="25" height="60" fill="#E8B4A0"/><rect x="45" y="15" width="25" height="75" fill="#D99A85"/><rect x="75" y="35" width="20" height="55" fill="#E8B4A0"/></svg>` },
+      { caption:'Belém Tower', scene:`<svg viewBox="0 0 100 100"><rect width="100" height="100" fill="#DCEBF2"/><rect x="40" y="30" width="20" height="60" fill="#F4F0E6"/><rect x="35" y="20" width="30" height="12" fill="#F4F0E6"/><rect x="0" y="85" width="100" height="15" fill="#6E93A8"/></svg>` },
+    ]
+  },
+  {
+    id: 3, sharedBy: 'Fit Nomads', destination: 'Sri Lanka', dayCount: 7, bookmarked: false,
+    scene: `<svg viewBox="0 0 300 170"><rect width="300" height="170" fill="#DCEBF2"/><rect x="0" y="120" width="300" height="50" fill="#F6D9C2"/><circle cx="240" cy="40" r="18" fill="#FCEFD8"/><path d="M0 120 Q60 100 120 120 T240 118 T300 115 V170 H0 Z" fill="#7A9E6E"/></svg>`,
+    days: [
+      { day:'Day 1-2', places:['Sigiriya rock fortress', 'Dambulla cave temple'] },
+      { day:'Day 3-4', places:['Ella hike', 'Nine Arch Bridge'] },
+      { day:'Day 5-7', places:['Mirissa whale watching', 'Galle Fort'] },
+    ],
+    gallery: [
+      { caption:'Sigiriya rock fortress', scene:`<svg viewBox="0 0 100 100"><rect width="100" height="100" fill="#DCEBF2"/><polygon points="30,90 55,20 80,90" fill="#8B8579"/><rect x="0" y="88" width="100" height="12" fill="#7A9E6E"/></svg>` },
+      { caption:'Nine Arch Bridge', scene:`<svg viewBox="0 0 100 100"><rect width="100" height="100" fill="#E8DDC7"/><rect x="10" y="55" width="80" height="10" fill="#8B8579"/><circle cx="25" cy="65" r="8" fill="#E8DDC7"/><circle cx="45" cy="65" r="8" fill="#E8DDC7"/><circle cx="65" cy="65" r="8" fill="#E8DDC7"/></svg>` },
+      { caption:'Mirissa coastline', scene:`<svg viewBox="0 0 100 100"><rect width="100" height="100" fill="#BFE0EE"/><rect x="0" y="70" width="100" height="30" fill="#F6D9C2"/><circle cx="80" cy="20" r="10" fill="#FCEFD8"/></svg>` },
+    ]
+  },
+];
+
+let activeView = 'following';
+const feedList = document.getElementById('feedList');
+
+function initials(name){ return name.split(' ').map(w=>w[0]).slice(0,2).join(''); }
+
+function renderFeed(){
+  const list = activeView === 'saved' ? itineraries.filter(i=>i.bookmarked) : itineraries;
+  if(list.length === 0){
+    feedList.innerHTML = '<div class="empty-state"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z"/></svg>'+
+      '<p>'+(activeView==='saved' ? 'Nothing saved yet — bookmark an itinerary to see it here' : 'Follow someone to see their shared itineraries here')+'</p></div>';
+    return;
+  }
+  feedList.innerHTML = list.map(i=>
+    '<div class="itin-card" data-open="'+i.id+'">'+
+      '<div class="itin-top"><div class="itin-avatar">'+initials(i.sharedBy)+'</div><p class="itin-by">'+i.sharedBy+' <span>shared a trip</span></p></div>'+
+      '<div class="itin-scene">'+i.scene+'</div>'+
+      '<p class="itin-title">'+i.destination+'</p>'+
+      '<div class="itin-bottom">'+
+        '<span class="itin-daycount">'+i.dayCount+' days</span>'+
+        '<button class="bookmark-btn '+(i.bookmarked?'saved':'')+'" data-bookmark="'+i.id+'">'+
+          '<svg viewBox="0 0 24 24" fill="'+(i.bookmarked?'currentColor':'none')+'" stroke="currentColor" stroke-width="1.8"><path d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z"/></svg>'+
+          (i.bookmarked?'Saved':'Save')+
+        '</button>'+
+      '</div>'+
+    '</div>'
+  ).join('');
+
+  feedList.querySelectorAll('[data-bookmark]').forEach(el=>{
+    el.addEventListener('click', e=>{
+      e.stopPropagation();
+      toggleBookmark(+el.dataset.bookmark);
+    });
+  });
+  feedList.querySelectorAll('[data-open]').forEach(el=>{
+    el.addEventListener('click', ()=> openDetail(+el.dataset.open));
+  });
+}
+
+function toggleBookmark(id){
+  const item = itineraries.find(i=>i.id===id);
+  item.bookmarked = !item.bookmarked;
+  renderFeed();
+  if(detailOpenId === id) renderDetailBookmarkBtn(item);
+}
+
+let detailOpenId = null;
+function openDetail(id){
+  const item = itineraries.find(i=>i.id===id);
+  detailOpenId = id;
+  document.getElementById('detailAvatar').textContent = initials(item.sharedBy);
+  document.getElementById('detailBy').textContent = item.sharedBy;
+  document.getElementById('detailTitle').textContent = item.destination + ' · ' + item.dayCount + ' days';
+  document.getElementById('detailDays').innerHTML = item.days.map(d=>
+    '<div class="day-block"><p class="day-label">'+d.day+'</p>'+
+    d.places.map(p=>'<div class="place-row">'+p+'</div>').join('')+
+    '</div>'
+  ).join('') +
+  (item.gallery && item.gallery.length ? (
+    '<div class="gallery-section">'+
+      '<p class="day-label">Gallery — from '+item.sharedBy+'</p>'+
+      '<div class="gallery-scroll">'+
+        item.gallery.map(g=>
+          '<div class="gallery-item"><div class="scene-box">'+g.scene+'</div><p class="gallery-caption">'+g.caption+'</p></div>'
+        ).join('')+
+      '</div>'+
+      '<div class="discretion-note"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 9v4M12 17h.01M10.3 3.9L2.7 17a2 2 0 001.7 3h15.2a2 2 0 001.7-3L13.7 3.9a2 2 0 00-3.4 0z"/></svg>'+
+        '<span>Sharers: label photos by place, not people — keep faces and personal shots out of shared galleries.</span>'+
+      '</div>'+
+    '</div>'
+  ) : '');
+  renderDetailBookmarkBtn(item);
+  document.getElementById('detailOverlay').classList.add('open');
+}
+function renderDetailBookmarkBtn(item){
+  const btn = document.getElementById('detailBookmarkBtn');
+  btn.classList.toggle('saved', item.bookmarked);
+  btn.innerHTML = '<svg viewBox="0 0 24 24" width="16" height="16" fill="'+(item.bookmarked?'currentColor':'none')+'" stroke="currentColor" stroke-width="1.8"><path d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z"/></svg>'+(item.bookmarked?'Saved':'Save this itinerary');
+  btn.onclick = ()=> toggleBookmark(item.id);
+}
+document.getElementById('detailClose').addEventListener('click', ()=>{
+  document.getElementById('detailOverlay').classList.remove('open');
+  detailOpenId = null;
+});
+
+document.querySelectorAll('.view-toggle button').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('.view-toggle button').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    activeView = btn.dataset.view;
+    document.querySelector('.tab-header h1').textContent = activeView==='saved' ? 'Saved' : 'Following';
+    renderFeed();
+  });
+});
+
+// Lets the shell deep-link straight to the Saved view — same pattern as
+// Brainstorming/Plan sharing one instance.
+window.addEventListener('message', e=>{
+  if(e.data === 'showSaved'){
+    document.querySelector('.view-toggle button[data-view="saved"]').click();
+  }
+  if(e.data === 'showFollowing'){
+    document.querySelector('.view-toggle button[data-view="following"]').click();
+  }
+});
+
+renderFeed();
+
+</script>
+</body>
+</html>

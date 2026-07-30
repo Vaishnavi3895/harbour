@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Profile</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{
+  --bg-1:#FBF4F2; --bg-2:#F1E6EC; --card:#FFFFFF; --card-tint:#F6EFEC;
+  --ink:#2C3A45; --ink-soft:#5C6B75; --ink-muted:#8B98A0; --blue:#6FA9C4; --blue-bg:#DCEBF2; --blue-text:#2E6C88;
+  --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
+}
+*{ box-sizing:border-box; margin:0; padding:0; }
+body{ font-family:var(--font-sans); color:var(--ink); background:linear-gradient(180deg,var(--bg-1),var(--bg-2)); min-height:100vh; padding:20px 16px 40px; }
+button{ font-family:inherit; }
+.wrap{ max-width:420px; margin:0 auto; }
+.tab-header{ margin-bottom:14px; } .tab-header h1{ font-size:17px; font-weight:600; }
+.panel{ background:var(--card-tint); border-radius:20px; padding:14px; margin-bottom:16px; }
+.profile-card{ background:var(--card); border-radius:16px; padding:20px; text-align:center; }
+.avatar-circle{ width:56px; height:56px; border-radius:50%; background:var(--blue-bg); color:var(--blue-text); display:flex; align-items:center; justify-content:center; font-size:20px; font-weight:600; margin:0 auto 12px; }
+.signin-note{ font-size:11.5px; color:var(--ink-soft); margin-top:6px; }
+.signin-btn{ width:100%; padding:11px 0; border-radius:12px; border:none; background:var(--ink); color:#fff; font-size:13px; font-weight:500; cursor:pointer; margin-top:14px; }
+.section-title{ font-size:12px; font-weight:600; margin:16px 4px 8px; color:var(--ink-soft); }
+.stat-row{ display:flex; gap:10px; }
+.stat-card{ flex:1; background:var(--card); border-radius:14px; padding:12px; text-align:center; }
+.stat-card p:first-child{ font-size:18px; font-weight:600; }
+.stat-card p:last-child{ font-size:10px; color:var(--ink-muted); margin-top:2px; }
+.pending-note{ font-size:10.5px; color:var(--ink-muted); text-align:center; margin-top:14px; }
+
+.auth-form{ margin-top:14px; text-align:left; }
+.auth-form input{ width:100%; padding:10px 12px; border:1px solid #E9E1DA; border-radius:10px; font-size:16px; font-family:inherit; margin-bottom:8px; }
+.auth-mode-toggle{ display:flex; gap:6px; margin-top:10px; justify-content:center; }
+.auth-mode-toggle button{ font-size:11px; color:var(--blue-text); background:none; border:none; cursor:pointer; text-decoration:underline; }
+.auth-error{ font-size:11px; color:#B2436A; margin-top:8px; text-align:left; }
+.auth-config-warning{ font-size:10.5px; color:#8A6423; background:#FCEFD8; border-radius:8px; padding:8px 10px; margin-top:10px; text-align:left; }
+.signed-in-email{ font-size:12px; color:var(--ink-soft); margin-top:2px; }
+.signout-btn{ width:100%; padding:10px 0; border-radius:12px; border:1px solid #E9E1DA; background:none; color:var(--ink-soft); font-size:12.5px; font-weight:500; cursor:pointer; margin-top:10px; }
+</style>
+</head>
+<body>
+
+<!--
+  ============================================================
+  SUPABASE SETUP — replace these two values with your own
+  ============================================================
+  1. Go to supabase.com -> New project (free tier, no card needed)
+  2. Project Settings -> API -> copy "Project URL" and the "anon public" key
+  3. Paste them below. These are meant to be public — Supabase's real
+     security lives in Row Level Security policies on your tables, not in
+     hiding this key (same principle as Firebase's client config).
+  4. Authentication -> Providers -> make sure Email is enabled (it is by
+     default). Under Authentication -> URL Configuration, you may want to
+     disable "Confirm email" while testing, so sign-up works instantly
+     without needing to click an email link first.
+-->
+<script>
+  const SUPABASE_URL = 'YOUR_SUPABASE_PROJECT_URL';
+  const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY';
+</script>
+
+
+
+<div class="wrap">
+  <div class="tab-header"><h1>Profile</h1></div>
+
+  <div class="panel">
+    <div class="profile-card" id="profileCard">
+      <div class="avatar-circle">?</div>
+      <p style="font-size:14px;font-weight:600;">Loading...</p>
+    </div>
+  </div>
+
+  <p class="section-title">Your travel, so far</p>
+  <div class="stat-row">
+    <div class="stat-card"><p>0</p><p>trips</p></div>
+    <div class="stat-card"><p>0</p><p>countries</p></div>
+    <div class="stat-card"><p>0</p><p>bucketlist saved</p></div>
+  </div>
+  <p class="pending-note">Real trip/Bucketlist syncing to your account is the next step after this — accounts exist now, but data doesn't follow them yet</p>
+</div>
+
+<script>
+const profileCard = document.getElementById('profileCard');
+const isConfigured = SUPABASE_URL !== 'YOUR_SUPABASE_PROJECT_URL' && SUPABASE_ANON_KEY !== 'YOUR_SUPABASE_ANON_KEY';
+
+function renderNotConfigured(){
+  profileCard.innerHTML =
+    '<div class="avatar-circle">?</div>' +
+    '<p style="font-size:14px;font-weight:600;">Sign-in not set up yet</p>' +
+    '<p class="signin-note">This needs a real Supabase project connected</p>' +
+    '<div class="auth-config-warning">Add your Supabase Project URL and anon key at the top of profile.html to enable real sign-in. See the comment block in the source for exact steps.</div>';
+}
+
+function renderSignedOut(mode, errorMsg){
+  mode = mode || 'signin';
+  profileCard.innerHTML =
+    '<div class="avatar-circle">?</div>' +
+    '<p style="font-size:14px;font-weight:600;">Not signed in</p>' +
+    '<p class="signin-note">Sign in to save trips across sessions and devices</p>' +
+    '<div class="auth-form">' +
+      '<input type="email" id="authEmail" placeholder="Email" autocomplete="email">' +
+      '<input type="password" id="authPassword" placeholder="Password" autocomplete="'+(mode==='signup'?'new-password':'current-password')+'">' +
+      '<button class="signin-btn" id="authSubmitBtn" style="margin-top:0;">'+(mode==='signup' ? 'Create account' : 'Sign in')+'</button>' +
+      (errorMsg ? '<p class="auth-error">'+errorMsg+'</p>' : '') +
+      '<div class="auth-mode-toggle">' +
+        (mode==='signup'
+          ? '<button id="authModeSwitch">Already have an account? Sign in</button>'
+          : '<button id="authModeSwitch">New here? Create an account</button>') +
+      '</div>' +
+    '</div>';
+
+  document.getElementById('authModeSwitch').addEventListener('click', ()=>{
+    renderSignedOut(mode==='signup' ? 'signin' : 'signup');
+  });
+
+  document.getElementById('authSubmitBtn').addEventListener('click', async ()=>{
+    const email = document.getElementById('authEmail').value.trim();
+    const password = document.getElementById('authPassword').value;
+    if(!email || !password){ renderSignedOut(mode, 'Enter both an email and a password.'); return; }
+
+    const btn = document.getElementById('authSubmitBtn');
+    btn.textContent = 'Please wait...'; btn.disabled = true;
+
+    const { data, error } = mode === 'signup'
+      ? await supabaseClient.auth.signUp({ email, password })
+      : await supabaseClient.auth.signInWithPassword({ email, password });
+
+    if(error){
+      renderSignedOut(mode, error.message);
+      return;
+    }
+    if(mode === 'signup' && data.user && !data.session){
+      // Email confirmation is likely enabled on this Supabase project —
+      // there's no session yet until the user clicks the confirmation link.
+      profileCard.innerHTML =
+        '<div class="avatar-circle">✓</div>' +
+        '<p style="font-size:14px;font-weight:600;">Check your email</p>' +
+        '<p class="signin-note">We sent a confirmation link to '+email+' — click it, then come back and sign in.</p>';
+      return;
+    }
+    // onAuthStateChange below will render the signed-in state once the
+    // session is actually established — no need to duplicate that here.
+  });
+}
+
+function renderSignedIn(user){
+  const email = user.email || 'Signed in';
+  const initial = email[0].toUpperCase();
+  profileCard.innerHTML =
+    '<div class="avatar-circle">'+initial+'</div>' +
+    '<p style="font-size:14px;font-weight:600;">Signed in</p>' +
+    '<p class="signed-in-email">'+email+'</p>' +
+    '<button class="signout-btn" id="signoutBtn">Sign out</button>';
+  document.getElementById('signoutBtn').addEventListener('click', async ()=>{
+    await supabaseClient.auth.signOut();
+  });
+}
+
+let supabaseClient = null;
+
+async function initAuth(){
+  if(!isConfigured){
+    renderNotConfigured();
+    return;
+  }
+  supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  const { data: { session } } = await supabaseClient.auth.getSession();
+  if(session && session.user){
+    renderSignedIn(session.user);
+  } else {
+    renderSignedOut('signin');
+  }
+
+  // Keeps the UI live in sync with auth state — covers sign-in, sign-out,
+  // and a session finishing setup after email confirmation.
+  supabaseClient.auth.onAuthStateChange((event, session)=>{
+    if(session && session.user){
+      renderSignedIn(session.user);
+    } else {
+      renderSignedOut('signin');
+    }
+  });
+}
+
+initAuth();
+</script>
+</body>
+</html>
